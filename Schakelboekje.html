@@ -1,0 +1,46 @@
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Map OpenLayers</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    #map {
+         position: absolute;
+         top: 0;
+         bottom: 0;
+         width: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        const map = new ol.Map({
+            layers: [
+                new ol.layer.Tile ({
+                    source: new ol.source.TileJSON ({
+                        url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+                        tileSize: 512,
+                    })
+                })
+            ],
+            target: 'map',
+            view: new ol.View({
+               center: ol.proj.fromLonLat([-43.206091, -22.920387]),
+               zoom: 13
+            })
+
+        });
+    </script>
+</body>
+</html>
