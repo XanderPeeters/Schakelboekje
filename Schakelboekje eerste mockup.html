@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <title>Map with Rail Feeders and Switches</title>
+
+    <style>
+
+        #image-container {
+
+            position: relative;
+
+            width: 100%;
+
+            height: 100%;
+
+        }
+
+        #map-image {
+
+            width: 100%;
+
+            height: 100%;
+
+            display: block;
+
+        }
+
+        /* Styles for zoom in and zoom out buttons */
+
+        #zoom-buttons-container {
+
+            position: absolute;
+
+            top: 10px;
+
+            right: 10px;
+
+            z-index: 2;
+
+        }
+
+        #zoom-in-button,
+
+        #zoom-out-button {
+
+            width: 40px;
+
+            height: 40px;
+
+            background-color: white; /* Set initial background color */
+
+            border: 1px solid #007bff; /* Set border */
+
+            border-radius: 50%;
+
+            margin-bottom: 5px;
+
+            cursor: pointer;
+
+            position: absolute;
+
+        }
+
+        #zoom-in-button {
+
+            top: 0;
+
+            right: 0;
+
+        }
+
+        #zoom-out-button {
+
+            top: 50px;
+
+            right: 0;
+
+        }
+
+        #zoom-in-button:hover,
+
+        #zoom-out-button:hover {
+
+            background-color: #007bff; /* Change background color on hover */
+
+            color: #fff; /* Change text color on hover */
+
+        }
+
+        #zoom-in-button:hover i,
+
+        #zoom-out-button:hover i {
+
+            color: #fff; /* Change icon color on hover */
+
+        }
+
+        #zoom-in-button i,
+
+        #zoom-out-button i {
+
+            font-size: 20px;
+
+            color: #007bff; /* Adjust initial icon color */
+
+        }
+
+        /* Button styling */
+
+        .button {
+
+            padding: 5px 10px;
+
+            background-color: #f8f9fa;
+
+            border: 1px solid #ced4da;
+
+            border-radius: 5px;
+
+            margin-right: 10px;
+
+            cursor: pointer;
+
+        }
+
+        /* Styling for Font Awesome icons */
+
+        .button i {
+
+            margin-right: 5px;
+
+        }
+
+        /* Active state for draw button */
+
+        button#draw-button.active {
+
+            background-color: #007bff; /* Red color for active state */
+
+            color: white; /* White text color for active state */
+
+        }
+
+        /* Styling for the drawn rectangle */
+
+        .rectangle {
+
+            position: absolute;
+
+            border: 1px solid red; /* Adjust as needed */
+
+            background-color: rgba(0, 0, 255, 0.1); /* Adjust as needed */
+
+        }
+
+        /* Positioning the search bar absolute */
+
+        #search-bar {
+
+            position: absolute;
+
+            top: 30px; /* Adjust as needed */
+
+            left: 20px; /* Adjust as needed */
+
+            z-index: 1; /* Ensuring search bar is above the image */
+
+            display: flex; /* Added */
+
+            gap: 10px; /* Added margin between elements */
+
+            width: 800px; /* Adjusted width */
+
+        }
+
+        /* Positioning the legend absolute */
+
+        #legend {
+
+            position: absolute;
+
+            z-index: 1; /* Ensuring legend is above the image */
+
+            padding: 10px; /* Adding some padding */
+
+            border: none; /* Remove border */
+
+            background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+
+            max-width: 300px; /* Maximum width of the legend box */
+
+            left: 6%;
+
+            transform: translate(-50%, -50%); /* Center horizontally and vertically */
+
+            bottom: 50px; /* Adjust as needed */
+
+            border-radius: 10px; /* Rounded corners */
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Adding shadow */
+
+        }
+
+        /* Styling for the legend text */
+
+        #legend h3 {
+
+            font-size: 50px; /* Adjusting font size */
+
+            margin-bottom: 15px; /* Adding space below the text */
+
+        }
+
+        /* Styling for legend list */
+
+        #legend ul {
+
+            list-style: none; /* Remove bullet points */
+
+            padding: 0; /* Remove default padding */
+
+        }
+
+        /* Styling for legend list items */
+
+        #legend ul li {
+
+            margin-bottom: 5px; /* Adding space between items */
+
+        }
+
+        /* Placeholder styles for dots */
+
+        .dot {
+
+            width: 10px;
+
+            height: 10px;
+
+            border-radius: 50%;
+
+            display: inline-block;
+
+            margin-right: 5px;
+
+        }
+
+        /* Red dot */
+
+        .dot.red {
+
+            background-color: red;
+
+        }
+
+        /* Green dot */
+
+        .dot.green {
+
+            background-color: green;
+
+        }
+
+        #popup {
+
+            display: none;
+
+            position: absolute;
+
+            z-index: 1;
+
+            bottom: calc(10% - 150px); /* Adjust as needed */
+
+            left: calc(100% - 150px); /* Adjust as needed */
+
+            background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent white background */
+
+            padding: 20px 10px 10px 10px; /* Adding some padding */
+
+            border: none; /* Remove border */
+
+            width: 200px; /* Maximum width of the popup box */
+
+            transform: translate(-50%, -50%); /* Center horizontally and vertically */
+
+            border-radius: 10px; /* Rounded corners */
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Adding shadow */
+
+        }
+
+        /* Styling for the pin */
+
+        .pin {
+
+            position: absolute;
+
+            width: 30px; /* Adjust as needed */
+
+            height: 30px; /* Adjust as needed */
+
+        }
+
+        .pin i {
+
+            color: blue;
+
+        }
+
+        /* Close button styles */
+
+        .close-button {
+
+            position: absolute;
+
+            top: 5px;
+
+            right: 5px;
+
+            cursor: pointer;
+
+        }
+
+        .button {
+
+            background-color: white; /* Set initial background color */
+
+            border: 1px solid #007bff; /* Set border color */
+
+            color: #007bff; /* Set text color */
+
+            padding: 8px 16px; /* Adjust padding as needed */
+
+            cursor: pointer;
+
+            transition: background-color 0.3s ease; /* Add transition for smooth effect */
+
+        }
+
+        .button:hover {
+
+            background-color: #007bff; /* Change background color on hover */
+
+            color: #fff; /* Change text color on hover */
+
+        }
+
+        /* CSS for Font Awesome icons */
+
+        .button i {
+
+            margin-right: 5px; /* Adjust spacing between icon and text */
+
+        }
+
+        /* Adjusting search bar size */
+
+        #search-bar input[type="text"] {
+
+            height: 40px; /* Adjust as needed */
+
+            font-size: 16px; /* Adjust as needed */
+
+            border: 1px solid black; /* Adding black border */
+
+            width: calc(66% - 5px); /* Adjusted width */
+
+        }
+
+        /* Adjusting button size */
+
+        #search-bar button {
+
+            height: 40px; /* Adjust as needed */
+
+            font-size: 16px; /* Adjust as needed */
+
+            border: 1px solid black; /* Adding black border */
+
+            width: calc(33% - 5px); /* Adjusted width */
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div id="map-container">
+
+        <!-- Picture with map -->
+
+        <div id="image-container">
+
+            <img id="map-image" src="GRB_kaart1.jpg" alt="Map with Rail Feeders and Switches" width="1250" height="1400">
+
+            <div id="zoom-buttons-container">
+
+                <button id="zoom-in-button"><i class="fas fa-plus-circle"></i></button>
+
+                <button id="zoom-out-button"><i class="fas fa-minus-circle"></i></button>
+
+            </div>
+
+        </div>
+
+        <div id="search-bar">
+
+            <input type="text" id="search-input" placeholder="Search for switches and feeders">
+
+            <button id="search-button" class="button"><i class="fas fa-search"></i> Search</button>
+
+            <button id="draw-button" class="button"><i class="fas fa-pencil-alt"></i> Draw</button>
+
+        </div>
+
+        <!-- Legend -->
+
+        <div id="legend">
+
+            <ul>
+
+                <li><span class="dot red"></span> Open</li>
+
+                <li><span class="dot green"></span> Closed</li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+    <!-- Pop-up for showing closest sections and feeders -->
+
+    <div id="popup" class="hidden">
+
+
+        <h4>Location information</h4>
+
+        <p>Main feeder: V121</p>
+
+        <p>Edge feeders:  V163, V123 </p>
+
+        <p>Switches: <br> PM163-121: Open <br> PM121-123: Open
+</p>
+
+        <p>Feeders to turn off: </p>
+
+        <ul id="popup-list">
+
+            <!-- Populated dynamically via JavaScript -->
+
+        </ul>
+
+        <!-- Close button -->
+
+        <button id="close-button" class="button close-button"><i class="fas fa-times"></i> Close</button>
+
+        <!-- Export button -->
+
+        <button id="export-button" class="button"><i class="fas fa-download"></i> Export Report</button>
+
+    </div>
+
+<script>
+
+    // Get references to elements
+
+    var mapContainer = document.getElementById('map-container');
+
+    var drawButton = document.getElementById('draw-button');
+
+    var rectangle = null;
+
+    var startX, startY;
+
+    var pinEnabled = true; // Flag to indicate if pin placement is enabled
+
+    var drawing = false; // Flag to indicate if drawing rectangle mode is active
+
+    // Function to handle mousedown event
+
+    function handleMouseDown(event) {
+
+        if (!pinEnabled && !drawing && !rectangle) {
+
+            // Drawing rectangle mode is active
+
+            drawing = true;
+
+            startX = event.clientX;
+
+            startY = event.clientY;
+
+            // Create a new rectangle element
+
+            rectangle = document.createElement('div');
+
+            rectangle.className = 'rectangle';
+
+            // Set initial position of the rectangle
+
+            rectangle.style.left = startX + 'px';
+
+            rectangle.style.top = startY + 'px';
+
+            rectangle.style.width = '0px';
+
+            rectangle.style.height = '0px';
+
+            // Append the rectangle to the map container
+
+            mapContainer.appendChild(rectangle);
+
+            event.preventDefault();
+
+        }
+
+    }
+
+    // Function to handle mousemove event
+
+    function handleMouseMove(event) {
+
+        if (drawing && rectangle) {
+
+            // Calculate new width and height of the rectangle
+
+            var width = event.clientX - startX;
+
+            var height = event.clientY - startY;
+
+            // Update position and size of the rectangle
+
+            rectangle.style.left = (width >= 0 ? startX : startX + width) + 'px';
+
+            rectangle.style.top = (height >= 0 ? startY : startY + height) + 'px';
+
+            rectangle.style.width = Math.abs(width) + 'px';
+
+            rectangle.style.height = Math.abs(height) + 'px';
+
+        }
+
+    }
+
+    // Function to handle mouseup event
+
+function handleMouseUp(event) {
+
+    if (drawing) {
+
+        // Drawing rectangle mode is active
+
+        drawing = false;
+
+        if (rectangle) {
+
+            // Remove the rectangle if it exists
+
+            mapContainer.removeChild(rectangle);
+
+            rectangle = null;
+
+            // Open the popup at the specified location
+
+            popup.style.display = 'block';
+
+            popup.style.left = 'calc(100% - 150px)';
+
+            popup.style.bottom = 'calc(10% - 150px)';
+
+        }
+
+    } else {
+
+        popup.style.display = 'none'; // Hide the popup when drawing mode is not active
+
+    }
+
+}
+
+    // Add event listener to draw button
+
+drawButton.addEventListener('click', function() {
+
+    // Toggle pin placement mode
+
+    pinEnabled = !pinEnabled;
+
+    if (!pinEnabled) {
+
+        // Disable pin placement, remove existing pin if it exists
+
+        if (pin) {
+
+            mapContainer.removeChild(pin);
+
+            pin = null;
+
+        }
+
+        // Add 'active' class to draw button
+
+        drawButton.classList.add('active');
+
+    } else {
+
+        // Hide the popup and remove the pin if it exists
+
+        popup.style.display = 'none';
+
+        if (pin) {
+
+            mapContainer.removeChild(pin);
+
+            pin = null;
+
+        }
+
+        // Remove 'active' class from draw button
+
+        drawButton.classList.remove('active');
+
+    }
+
+});
+
+    // Get a reference to the map image
+
+    var mapImage = document.getElementById('map-image');
+
+    var mapContainer = document.getElementById('map-container');
+
+    var popup = document.getElementById('popup');
+
+    var pin = null;
+
+    // Function to handle click on the map image
+
+    function handleMapClick(event) {
+
+        // Toggle the visibility of the popup
+
+        if (popup.style.display === 'block') {
+
+            // If popup is already visible, hide it
+
+            popup.style.display = 'none';
+
+            // Clear existing pin if it exists
+
+            if (pin) {
+
+                mapContainer.removeChild(pin);
+
+                pin = null;
+
+            }
+
+        } else {
+
+            // If popup is hidden, show it
+
+            popup.style.display = 'block';
+
+            // Clear existing pin if it exists
+
+            if (pin) {
+
+                mapContainer.removeChild(pin);
+
+                pin = null;
+
+            }
+
+            // Calculate the position of the click relative to the image
+
+            var rect = mapImage.getBoundingClientRect();
+
+            var x = event.clientX - rect.left;
+
+            var y = event.clientY - rect.top;
+
+            // Create a new pin element
+
+            pin = document.createElement('div');
+
+            pin.className = 'pin';
+
+            // Add Font Awesome icon inside the pin element
+
+            pin.innerHTML = '<i class="fas fa-map-marker-alt fa-2x"></i>';
+
+            pin.style.left = x + 'px';
+
+            pin.style.top = y + 'px';
+
+            // Add click event listener to remove the pin when clicked
+
+            pin.addEventListener('click', function() {
+
+                mapContainer.removeChild(pin);
+
+                pin = null;
+
+            });
+
+            // Append the pin to the map container
+
+            mapContainer.appendChild(pin);
+
+        }
+
+    }
+
+    // Add event listeners for drawing rectangle
+
+    mapContainer.addEventListener('mousedown', handleMouseDown);
+
+    mapContainer.addEventListener('mousemove', handleMouseMove);
+
+    mapContainer.addEventListener('mouseup', handleMouseUp); // Add back mouseup event listener
+
+    // Add click event listener to the map image
+
+    mapImage.addEventListener('click', handleMapClick);
+
+    // Function to handle click on the close button in the popup
+
+    var closeButton = document.getElementById('close-button');
+
+    closeButton.addEventListener('click', function() {
+
+        popup.style.display = 'none'; // Hide the popup when the close button is clicked
+
+        if (pin) {
+
+            mapContainer.removeChild(pin);
+
+            pin = null;
+
+        }
+
+    });
+
+    // Function to handle click on the export report button
+
+    var exportButton = document.getElementById('export-button');
+
+    exportButton.addEventListener('click', function() {
+
+        // Hide the buttons temporarily
+
+        closeButton.style.display = 'none';
+
+        exportButton.style.display = 'none';
+
+        // Remove the export button and close button from the popup content
+
+        var content = popup.innerHTML;
+
+        content = content.replace(exportButton.outerHTML, '');
+
+        content = content.replace(closeButton.outerHTML, '');
+
+        // Create a Blob with the modified content
+
+        var blob = new Blob(['<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' + content + '</body></html>'], { type: 'application/msword' });
+
+        // Create a URL for the Blob
+
+        var url = URL.createObjectURL(blob);
+
+        // Create a link element
+
+        var a = document.createElement('a');
+
+        a.href = url;
+
+        a.download = 'popup_content.doc'; // Set the download attribute to specify the filename
+
+        // Simulate a click on the link to trigger the download
+
+        a.click();
+
+        // Show the buttons again after the document is exported
+
+        closeButton.style.display = 'block';
+
+        exportButton.style.display = 'block';
+
+    });
+
+    // Function to handle click outside the drawn rectangle
+
+    mapContainer.addEventListener('click', function(event) {
+
+        if (rectangle && !drawing && event.target === mapImage) {
+
+            mapContainer.removeChild(rectangle);
+
+            rectangle = null;
+
+        }
+
+    });
+
+    // Add event listener to search button
+
+    var searchButton = document.getElementById('search-button');
+
+    searchButton.addEventListener('click', function() {
+
+        var searchInput = document.getElementById('search-input').value;
+
+        if (searchInput === 'V121') {
+
+            // Replace the current image with GRB_kaart2.jpg
+
+            mapImage.src = 'GRB_kaart2.jpg';
+
+	    // Open the popup at the specified location
+            popup.style.display = 'block';
+            popup.style.left = 'calc(100% - 150px)';
+            popup.style.bottom = 'calc(10% - 150px)';
+
+        }
+	// Clear the search input field
+   	 document.getElementById('search-input').value = '';
+
+
+    });
+
+    // Get references to zoom buttons
+
+    var zoomInButton = document.getElementById('zoom-in-button');
+
+    var zoomOutButton = document.getElementById('zoom-out-button');
+
+    // Add event listener for zoom-in button
+
+    zoomInButton.addEventListener('click', function() {
+
+        // Implement zoom-in functionality here
+
+        var currentImage = mapImage.src;
+
+        if (currentImage.endsWith('GRB_kaart1.jpg')) {
+
+            mapImage.src = 'GRB_kaart2.jpg';
+
+        }
+
+    });
+
+    // Add event listener for zoom-out button
+
+    zoomOutButton.addEventListener('click', function() {
+
+        // Implement zoom-out functionality here
+
+        var currentImage = mapImage.src;
+
+        if (currentImage.endsWith('GRB_kaart2.jpg')) {
+
+            mapImage.src = 'GRB_kaart1.jpg';
+
+        }
+
+    });
+
+</script>
+
+</body>
+
+</html>
