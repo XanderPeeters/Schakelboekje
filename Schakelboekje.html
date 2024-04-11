@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -38,8 +39,36 @@
                center: ol.proj.fromLonLat([4.4024643, 51.2194475]),
                zoom: 13
             })
-
         });
+
+        // Load GeoJSON data
+        const geojsonSource = new ol.source.Vector({
+            url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
+            format: new ol.format.GeoJSON()
+        });
+
+        // Style for the GeoJSON features
+        const geojsonStyle = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 0, 0, 0.8)' // Flashy red fill color
+                }),
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(255, 0, 0, 1)', // Red stroke color
+                    width: 2
+                })
+            })
+        });
+
+        // Create the vector layer
+        const vectorLayer = new ol.layer.Vector({
+            source: geojsonSource,
+            style: geojsonStyle
+        });
+
+        // Add the vector layer to the map
+        map.addLayer(vectorLayer);
     </script>
 </body>
 </html>
