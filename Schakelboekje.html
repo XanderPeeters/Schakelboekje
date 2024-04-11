@@ -57,6 +57,12 @@
         Opacity QGIS Layer 2:
         <input id="opacity2" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </label>
+    <br>
+    <label for="searchInput">
+        Enter Address or Layer Name:
+        <input id="searchInput" type="text"/>
+    </label>
+    <button onclick="zoomToLocationOrLayer()">Zoom</button>
 </div>
 
 <script>
@@ -179,6 +185,44 @@
             layer.setOpacity(parseFloat(this.value));
         });
         rangeInput.value = String(layer.getOpacity());
+    }
+
+    // Function to zoom to a specific location or layer
+    function zoomToLocationOrLayer() {
+        const searchText = document.getElementById('searchInput').value;
+        if (searchText) {
+            // Check if the search text is a layer name in the second layer
+            vectorLayer2.getSource().forEachFeature(function(feature) {
+                if (feature.get('LAYER') === searchText) {
+                    const extent = feature.getGeometry().getExtent();
+                    map.getView().fit(extent, { duration: 1000 });
+                    return;
+                }
+            });
+            // If not a layer name, try to geocode the search text as an address
+            geocodeAddress(searchText);
+        }
+    }
+
+    // Function to geocode an address and zoom to its location
+    function geocodeAddress(address) {
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
+        fetch(url)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    const location = data[0];
+                    const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
+                    map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
+                } else {
+                    alert('Address not found!');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error geocoding address:', error);
+            });
     }
 
     // Handle visibility for OSM layer
