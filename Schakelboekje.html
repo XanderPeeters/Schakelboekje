@@ -29,63 +29,86 @@
             left: 0;
             height: calc(100% - 40px); /* Adjust as needed */
             width: 300px;
-            background-color: rgba(255, 255, 255, 0.8);
+            background-color: #f8f9fa; /* Light gray background */
             padding: 10px;
             box-sizing: border-box;
-            text-align: center;
+            text-align: left; /* Align text to the left */
             overflow-y: auto;
         }
 
         .control-box {
             margin-bottom: 10px;
         }
+
+        .control-box label {
+            display: block; /* Each label on a new line */
+            margin-bottom: 5px; /* Add space between labels */
+            font-weight: bold; /* Make label text bold */
+        }
+
+        .control-box input[type="text"],
+        .control-box input[type="range"],
+        .control-box button {
+            width: 100%; /* Take up full width */
+            padding: 5px; /* Add padding */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        .control-box button {
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+        }
+
+        .control-box button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
     </style>
 </head>
 <body>
 <div id="controls">
     <div class="control-box">
-        <label for="visible0">
-            OSM layer:
-            <input id="visible0" class="visible" type="checkbox"/>
-        </label>
+        <label for="visible0">Kaart:</label>
+        <input id="visible0" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible1">
-            QGIS Layer 1:
-            <input id="visible1" class="visible" type="checkbox"/>
-        </label>
+        <label for="visible1">Sectie schakelaars:</label>
+        <input id="visible1" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible2">
-            QGIS Layer 2:
-            <input id="visible2" class="visible" type="checkbox"/>
-        </label>
+        <label for="visible2">Voedingen:</label>
+        <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="opacity1">
-            Opacity QGIS Layer 1:
-            <input id="opacity1" class="opacity" type="range" min="0" max="1" step="0.01"/>
-        </label>
+        <label for="opacity1">Transparantie schakelaars:</label>
+        <input id="opacity1" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </div>
     <div class="control-box">
-        <label for="opacity2">
-            Opacity QGIS Layer 2:
-            <input id="opacity2" class="opacity" type="range" min="0" max="1" step="0.01"/>
-        </label>
+        <label for="opacity2">Transparantie voedingen:</label>
+        <input id="opacity2" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </div>
     <div class="control-box">
-        <label for="searchInput">
-            Enter Address or Layer Name:
-            <input id="searchInput" type="text"/>
-        </label>
+        <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
+        <input id="searchInput" type="text"/>
     </div>
     <div class="control-box">
-        <button onclick="zoomToLocationOrLayer()">Zoom</button>
+        <button onclick="zoomToLocationOrLayer()">Zoeken</button>
     </div>
 </div>
 <div id="map"></div>
 
 <script>
+    const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
+    const extentSize = 25000; // Size of the extent in meters (10 km = 10000 meters)
+    const extent = ol.extent.buffer(center.concat(center), extentSize);
+
+    const view = new ol.View({
+        center: center,
+        zoom: 13,
+        extent: extent // Set the extent
+    });
+
     const map = new ol.Map({
         layers: [
             new ol.layer.Tile({
@@ -96,10 +119,7 @@
             })
         ],
         target: 'map',
-        view: new ol.View({
-            center: ol.proj.fromLonLat([4.4024643, 51.2194475]),
-            zoom: 13
-        })
+        view: view // Use the view with the custom extent
     });
 
     // Object to store the colors for each layer
@@ -111,19 +131,30 @@
         format: new ol.format.GeoJSON()
     });
 
-    // Style for the first layer
-    const geojsonStyle1 = new ol.style.Style({
-        image: new ol.style.Circle({
-            radius: 6,
-            fill: new ol.style.Fill({
-                color: 'rgba(255, 0, 0, 0.8)' // Red fill color
+    // Style for the first layer (dots) with red/green color and label
+    const geojsonStyle1 = function(feature) {
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+        const color = 'red'; // Set color to red
+        // Create style for the feature
+        return new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: color // Use the color
+                }),
+                stroke: new ol.style.Stroke({
+                    color: color, // Use the color
+                    width: 2
+                })
             }),
-            stroke: new ol.style.Stroke({
-                color: 'rgba(255, 0, 0, 1)', // Red stroke color
-                width: 2
+            text: new ol.style.Text({
+                text: layerName, // Display the layer name as label
+                font: '12px Calibri,sans-serif',
+                offsetY: -12,
+                fill: new ol.style.Fill({ color: color }) // Use the same color for the label
             })
-        })
-    });
+        });
+    };
 
     // Create the first vector layer
     const vectorLayer1 = new ol.layer.Vector({
@@ -140,11 +171,6 @@
         format: new ol.format.GeoJSON()
     });
 
-    // Function to generate a random color
-    function getRandomColor() {
-        return '#' + Math.floor(Math.random() * 16777215).toString(16);
-    }
-
     // Style for the second layer (lines) with dynamic color and label
     const geojsonStyle2 = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
@@ -154,7 +180,7 @@
             color = layerColors[layerName];
         } else {
             // Otherwise, generate a new random color and store it
-            color = getRandomColor();
+            color = '#' + Math.floor(Math.random() * 16777215).toString(16);
             layerColors[layerName] = color;
         }
         // Create style for the feature
@@ -211,16 +237,20 @@
     function zoomToLocationOrLayer() {
         const searchText = document.getElementById('searchInput').value;
         if (searchText) {
-            // Check if the search text is a layer name in the second layer
+            // Check if the search text matches a feeder name
+            let foundFeeder = false;
             vectorLayer2.getSource().forEachFeature(function(feature) {
                 if (feature.get('LAYER') === searchText) {
                     const extent = feature.getGeometry().getExtent();
                     map.getView().fit(extent, { duration: 1000 });
+                    foundFeeder = true;
                     return;
                 }
             });
-            // If not a layer name, try to geocode the search text as an address
-            geocodeAddress(searchText);
+            // If no feeder found, try to geocode the search text as an address
+            if (!foundFeeder) {
+                geocodeAddress(searchText);
+            }
         }
     }
 
