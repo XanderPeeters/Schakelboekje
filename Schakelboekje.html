@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -10,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
     <style>
-<!--        test -->
         body {
             margin: 0;
             padding: 0;
@@ -145,7 +143,7 @@
         view: view // Use the view with the custom extent
     });
 
-     const pointerElement = document.createElement('i');
+    const pointerElement = document.createElement('i');
     pointerElement.className = 'pointer fa-solid fa-location-dot';
     const pointerOverlay = new ol.Overlay({
         element: pointerElement,
@@ -164,20 +162,47 @@
     map.addOverlay(popupOverlay);
 
     map.on('click', function(event) {
-        const coordinates = event.coordinate;
-        pointerOverlay.setPosition(coordinates);
-        displayPopup(coordinates);
+    const clickedCoordinates = event.coordinate;
+
+    // Transform the clicked coordinates to the same projection as the features
+    const clickedCoords = ol.proj.transform(clickedCoordinates, 'EPSG:3857', 'EPSG:4326');
+
+    // Find the closest feature in the "voedingen3" layer
+    let closestFeature = null;
+    let closestDistance = Infinity;
+    vectorLayer2.getSource().forEachFeature(function(feature) {
+        // Transform the feature coordinates to the same projection as the clicked coordinates
+        const featureCoordinates = feature.getGeometry().getClosestPoint(clickedCoordinates);
+        const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+
+        // Calculate the distance using transformed coordinates
+        const distance = ol.sphere.getDistance(clickedCoords, featureCoords);
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestFeature = feature;
+        }
     });
 
-    function displayPopup(coordinates) {
-        const lon = coordinates[0];
-        const lat = coordinates[1];
+    // Display the popup with information
+    if (closestFeature) {
+        const closestFeatureName = closestFeature.get('LAYER');
+        const lon = clickedCoordinates[0];
+        const lat = clickedCoordinates[1];
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(clickedCoordinates);
+    } else {
+        // If no feature found, display coordinates only
+        const lon = clickedCoordinates[0];
+        const lat = clickedCoordinates[1];
         const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
         popupElement.innerHTML = content;
-        popupOverlay.setPosition(coordinates);
+        popupOverlay.setPosition(clickedCoordinates);
     }
 
-
+    // Display the pointer at the clicked coordinates
+    pointerOverlay.setPosition(clickedCoordinates);
+});
 
     // Object to store the colors for each layer
     const layerColors = {};
@@ -264,15 +289,6 @@
     // Add the second vector layer to the map
     map.addLayer(vectorLayer2);
 
-    // Troubleshooting: Add an event listener to check for errors
-    vectorLayer2.getSource().on('change', function(evt) {
-        if (vectorLayer2.getSource().getState() === 'ready') {
-            console.log('Data loaded successfully.');
-        } else if (vectorLayer2.getSource().getState() === 'error') {
-            console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
-        }
-    });
-
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
         const checkbox = document.getElementById(checkboxId);
@@ -290,9 +306,10 @@
         rangeInput.value = String(layer.getOpacity());
     }
 
-    // Function to zoom to a specific location or layer
     function zoomToLocationOrLayer() {
         const searchText = document.getElementById('searchInput').value;
+        // Clear previous error message
+        document.getElementById('errorMessage').textContent = '';
         if (searchText) {
             let foundLayer2 = false;
             let foundLayer1 = false;
@@ -301,6 +318,8 @@
                 if (feature.get('LAYER') === searchText) {
                     const extent = feature.getGeometry().getExtent();
                     map.getView().fit(extent, { duration: 1000 });
+                    const coordinates = ol.extent.getCenter(extent);
+                    displayLayerPinAndPopup(coordinates); // Display pin and popup at the location
                     foundLayer2 = true;
                     return;
                 }
@@ -311,30 +330,29 @@
                     if (feature.get('LAYER') === searchText) {
                         const extent = feature.getGeometry().getExtent();
                         map.getView().fit(extent, { duration: 1000 });
+                        const coordinates = ol.extent.getCenter(extent);
+                        displayLayerPinAndPopup(coordinates); // Display pin and popup at the location
                         foundLayer1 = true;
                         return;
                     }
                 });
             }
-            // If not found in Layer 1, try to geocode the search text as an address
+
+            // If not found in Layer 1 or Layer 2, attempt to geocode address
             if (!foundLayer2 && !foundLayer1) {
-                geocodeAddress(searchText);
-            }
-            // Display error message if nothing is found
-            if (!foundLayer2 && !foundLayer1 && !searchText) {
-                document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
-            } else {
-                document.getElementById('errorMessage').textContent = ''; // Clear error message
+                geocodeAddress(searchText); // Attempt to geocode the address
             }
         } else {
-            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+             document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
         }
     }
 
-
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
-        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
+        const postalcode = '2000';
+        const city = 'Antwerpen';
+        const query = encodeURIComponent(address) + ' ' + postalcode + ' ' + city;
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + query;
         fetch(url)
             .then(function(response) {
                 return response.json();
@@ -344,13 +362,52 @@
                     const location = data[0];
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
+                    displayAddressPinAndPopup(coordinates); // Pass coordinates instead of extent
                 } else {
-                    alert('Address not found!');
+                    document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
                 }
             })
             .catch(function(error) {
                 console.error('Error geocoding address:', error);
             });
+    }
+
+
+    function displayAddressPinAndPopup(coordinates) {
+        const lon = coordinates[0];
+        const lat = coordinates[1];
+        const position = ol.proj.fromLonLat([lon, lat]);
+
+        // Remove existing pin and popup
+        pointerOverlay.setPosition(undefined);
+        popupOverlay.setPosition(undefined);
+
+        // Set pin position
+        pointerOverlay.setPosition(position);
+
+        // Display popup
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(position);
+    }
+
+    function displayLayerPinAndPopup(extent) {
+        const center = ol.extent.getCenter(extent);
+        const lon = center[0];
+        const lat = center[1];
+        const position = ol.proj.fromLonLat([lon, lat]);
+
+        // Remove existing pin and popup
+        pointerOverlay.setPosition(undefined);
+        popupOverlay.setPosition(undefined);
+
+        // Set pin position
+        pointerOverlay.setPosition(position);
+
+        // Display popup
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(position);
     }
 
     // Handle visibility for OSM layer
