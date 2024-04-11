@@ -130,6 +130,8 @@
         extent: extent // Set the extent
     });
 
+    let popupDisplayed = false;
+
     const map = new ol.Map({
         layers: [
             new ol.layer.Tile({
@@ -162,47 +164,58 @@
     map.addOverlay(popupOverlay);
 
     map.on('click', function(event) {
-    const clickedCoordinates = event.coordinate;
+        const clickedCoordinates = event.coordinate;
 
-    // Transform the clicked coordinates to the same projection as the features
-    const clickedCoords = ol.proj.transform(clickedCoordinates, 'EPSG:3857', 'EPSG:4326');
-
-    // Find the closest feature in the "voedingen3" layer
-    let closestFeature = null;
-    let closestDistance = Infinity;
-    vectorLayer2.getSource().forEachFeature(function(feature) {
-        // Transform the feature coordinates to the same projection as the clicked coordinates
-        const featureCoordinates = feature.getGeometry().getClosestPoint(clickedCoordinates);
-        const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
-
-        // Calculate the distance using transformed coordinates
-        const distance = ol.sphere.getDistance(clickedCoords, featureCoords);
-        if (distance < closestDistance) {
-            closestDistance = distance;
-            closestFeature = feature;
+        // Remove pin and popup if already displayed
+        if (popupDisplayed) {
+            pointerOverlay.setPosition(undefined);
+            popupOverlay.setPosition(undefined);
+            popupDisplayed = false;
+            return; // Exit the function early
         }
+
+        // Transform the clicked coordinates to the same projection as the features
+        const clickedCoords = ol.proj.transform(clickedCoordinates, 'EPSG:3857', 'EPSG:4326');
+
+        // Find the closest feature in the "voedingen3" layer
+        let closestFeature = null;
+        let closestDistance = Infinity;
+        vectorLayer2.getSource().forEachFeature(function(feature) {
+            // Transform the feature coordinates to the same projection as the clicked coordinates
+            const featureCoordinates = feature.getGeometry().getClosestPoint(clickedCoordinates);
+            const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+
+            // Calculate the distance using transformed coordinates
+            const distance = ol.sphere.getDistance(clickedCoords, featureCoords);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestFeature = feature;
+            }
+        });
+
+        // Display the popup with information
+        if (closestFeature) {
+            const closestFeatureName = closestFeature.get('LAYER');
+            const lon = clickedCoordinates[0];
+            const lat = clickedCoordinates[1];
+            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p>`;
+            popupElement.innerHTML = content;
+            popupOverlay.setPosition(clickedCoordinates);
+            popupDisplayed = true;
+        } else {
+            // If no feature found, display coordinates only
+            const lon = clickedCoordinates[0];
+            const lat = clickedCoordinates[1];
+            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+            popupElement.innerHTML = content;
+            popupOverlay.setPosition(clickedCoordinates);
+            popupDisplayed = true;
+        }
+
+        // Display the pointer at the clicked coordinates
+        pointerOverlay.setPosition(clickedCoordinates);
     });
 
-    // Display the popup with information
-    if (closestFeature) {
-        const closestFeatureName = closestFeature.get('LAYER');
-        const lon = clickedCoordinates[0];
-        const lat = clickedCoordinates[1];
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(clickedCoordinates);
-    } else {
-        // If no feature found, display coordinates only
-        const lon = clickedCoordinates[0];
-        const lat = clickedCoordinates[1];
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(clickedCoordinates);
-    }
-
-    // Display the pointer at the clicked coordinates
-    pointerOverlay.setPosition(clickedCoordinates);
-});
 
     // Object to store the colors for each layer
     const layerColors = {};
