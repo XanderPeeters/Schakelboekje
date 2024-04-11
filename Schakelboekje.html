@@ -6,6 +6,7 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Map OpenLayers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
     <style>
@@ -34,6 +35,25 @@
             box-sizing: border-box;
             text-align: left; /* Align text to the left */
             overflow-y: auto;
+        }
+
+        .pointer {
+            font-size: 24px; /* Adjust icon size as needed */
+            color: red; /* Change color as needed */
+            position: absolute;
+            z-index: 1000;
+         }
+
+         .popup {
+            position: absolute;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            top: 20px;
+            right: 20px;
         }
 
         .control-box {
@@ -67,6 +87,7 @@
     </style>
 </head>
 <body>
+<div id="popup" class="popup"></div>
 <div id="controls">
     <div class="control-box">
         <label for="visible0">Kaart:</label>
@@ -122,6 +143,40 @@
         target: 'map',
         view: view // Use the view with the custom extent
     });
+
+     const pointerElement = document.createElement('i');
+    pointerElement.className = 'pointer fa-solid fa-location-dot';
+    const pointerOverlay = new ol.Overlay({
+        element: pointerElement,
+        positioning: 'center-center',
+        stopEvent: false
+    });
+    map.addOverlay(pointerOverlay);
+
+    const popupElement = document.getElementById('popup');
+    const popupOverlay = new ol.Overlay({
+        element: popupElement,
+        positioning: 'top-right',
+        offset: [0, -10],
+        stopEvent: false
+    });
+    map.addOverlay(popupOverlay);
+
+    map.on('click', function(event) {
+        const coordinates = event.coordinate;
+        pointerOverlay.setPosition(coordinates);
+        displayPopup(coordinates);
+    });
+
+    function displayPopup(coordinates) {
+        const lon = coordinates[0];
+        const lat = coordinates[1];
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(coordinates);
+    }
+
+
 
     // Object to store the colors for each layer
     const layerColors = {};
