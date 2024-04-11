@@ -8,193 +8,126 @@
     <title>Map OpenLayers</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
 
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 30px; /* Adjust as needed */
-            width: 100%;
-        }
-
-        #controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-    </style>
+    #map {
+         position: absolute;
+         top: 0;
+         bottom: 0;
+         width: 100%;
+    }
+</style>
 </head>
 <body>
-<div id="map"></div>
-<div id="controls">
-    <label for="visible0">
-        OSM layer:
-        <input id="visible0" class="visible" type="checkbox"/>
-    </label>
-    <label for="visible1">
-        QGIS Layer 1:
-        <input id="visible1" class="visible" type="checkbox"/>
-    </label>
-    <label for="visible2">
-        QGIS Layer 2:
-        <input id="visible2" class="visible" type="checkbox"/>
-    </label>
-    <label for="opacity1">
-        Opacity QGIS Layer 1:
-        <input id="opacity1" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </label>
-    <label for="opacity2">
-        Opacity QGIS Layer 2:
-        <input id="opacity2" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </label>
-</div>
+    <div id="map"></div>
+    <script>
+        const map = new ol.Map({
+            layers: [
+                new ol.layer.Tile ({
+                    source: new ol.source.TileJSON ({
+                        url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+                        tileSize: 512,
+                    })
+                })
+            ],
+            target: 'map',
+            view: new ol.View({
+               center: ol.proj.fromLonLat([4.4024643, 51.2194475]),
+               zoom: 13
+            })
+        });
 
-<script>
-    const map = new ol.Map({
-        layers: [
-            new ol.layer.Tile({
-                source: new ol.source.TileJSON({
-                    url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
-                    tileSize: 512,
+        // Object to store the colors for each layer
+        const layerColors = {};
+
+        // Load GeoJSON data for the first layer
+        const geojsonSource1 = new ol.source.Vector({
+            url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
+            format: new ol.format.GeoJSON()
+        });
+
+        // Style for the first layer
+        const geojsonStyle1 = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: 'rgba(255, 0, 0, 0.8)' // Red fill color
+                }),
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(255, 0, 0, 1)', // Red stroke color
+                    width: 2
                 })
             })
-        ],
-        target: 'map',
-        view: new ol.View({
-            center: ol.proj.fromLonLat([4.4024643, 51.2194475]),
-            zoom: 13
-        })
-    });
+        });
 
-    // Object to store the colors for each layer
-    const layerColors = {};
+        // Create the first vector layer
+        const vectorLayer1 = new ol.layer.Vector({
+            source: geojsonSource1,
+            style: geojsonStyle1
+        });
 
-    // Load GeoJSON data for the first layer
-    const geojsonSource1 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
-        format: new ol.format.GeoJSON()
-    });
+        // Add the first vector layer to the map
+        map.addLayer(vectorLayer1);
 
-    // Style for the first layer
-    const geojsonStyle1 = new ol.style.Style({
-        image: new ol.style.Circle({
-            radius: 6,
-            fill: new ol.style.Fill({
-                color: 'rgba(255, 0, 0, 0.8)' // Red fill color
-            }),
-            stroke: new ol.style.Stroke({
-                color: 'rgba(255, 0, 0, 1)', // Red stroke color
-                width: 2
-            })
-        })
-    });
+        // Load GeoJSON data for the second layer
+        const geojsonSource2 = new ol.source.Vector({
+            url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voedingen3.geojson',
+            format: new ol.format.GeoJSON()
+        });
 
-    // Create the first vector layer
-    const vectorLayer1 = new ol.layer.Vector({
-        source: geojsonSource1,
-        style: geojsonStyle1
-    });
-
-    // Add the first vector layer to the map
-    map.addLayer(vectorLayer1);
-
-    // Load GeoJSON data for the second layer
-    const geojsonSource2 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voedingen3.geojson',
-        format: new ol.format.GeoJSON()
-    });
-
-    // Function to generate a random color
-    function getRandomColor() {
-        return '#' + Math.floor(Math.random() * 16777215).toString(16);
-    }
-
-    // Style for the second layer (lines) with dynamic color and label
-    const geojsonStyle2 = function(feature) {
-        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
-        let color;
-        if (layerColors[layerName]) {
-            // If color is already assigned, reuse it
-            color = layerColors[layerName];
-        } else {
-            // Otherwise, generate a new random color and store it
-            color = getRandomColor();
-            layerColors[layerName] = color;
+        // Function to generate a random color
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random() * 16777215).toString(16);
         }
-        // Create style for the feature
-        return new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: color, // Use the color
-                width: 3
-            }),
-            text: new ol.style.Text({
-                text: layerName, // Display the layer name as label
-                font: '12px Calibri,sans-serif',
-                offsetY: -12,
-                fill: new ol.style.Fill({ color: color }) // Use the same color for the label
-            })
+
+        // Style for the second layer (lines) with dynamic color and label
+        const geojsonStyle2 = function(feature) {
+            const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
+            let color;
+            if (layerColors[layerName]) {
+                // If color is already assigned, reuse it
+                color = layerColors[layerName];
+            } else {
+                // Otherwise, generate a new random color and store it
+                color = getRandomColor();
+                layerColors[layerName] = color;
+            }
+            // Create style for the feature
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: color, // Use the color
+                    width: 3
+                }),
+                text: new ol.style.Text({
+                    text: layerName, // Display the layer name as label
+                    font: '12px Calibri,sans-serif',
+                    offsetY: -12,
+                    fill: new ol.style.Fill({ color: color }) // Use the same color for the label
+                })
+            });
+        };
+
+        // Create the second vector layer with the dynamic style function
+        const vectorLayer2 = new ol.layer.Vector({
+            source: geojsonSource2,
+            style: geojsonStyle2
         });
-    };
 
-    // Create the second vector layer with the dynamic style function
-    const vectorLayer2 = new ol.layer.Vector({
-        source: geojsonSource2,
-        style: geojsonStyle2
-    });
+        // Add the second vector layer to the map
+        map.addLayer(vectorLayer2);
 
-    // Add the second vector layer to the map
-    map.addLayer(vectorLayer2);
-
-    // Troubleshooting: Add an event listener to check for errors
-    vectorLayer2.getSource().on('change', function(evt) {
-        if (vectorLayer2.getSource().getState() === 'ready') {
-            console.log('Data loaded successfully.');
-        } else if (vectorLayer2.getSource().getState() === 'error') {
-            console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
-        }
-    });
-
-    // Function to handle layer visibility
-    function handleLayerVisibility(layer, checkboxId) {
-        const checkbox = document.getElementById(checkboxId);
-        checkbox.addEventListener('change', function() {
-            layer.setVisible(this.checked);
+        // Troubleshooting: Add an event listener to check for errors
+        vectorLayer2.getSource().on('change', function(evt) {
+            if (vectorLayer2.getSource().getState() === 'ready') {
+                console.log('Data loaded successfully.');
+            } else if (vectorLayer2.getSource().getState() === 'error') {
+                console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
+            }
         });
-    }
-
-    // Function to handle layer opacity
-    function handleLayerOpacity(layer, rangeId) {
-        const rangeInput = document.getElementById(rangeId);
-        rangeInput.addEventListener('input', function() {
-            layer.setOpacity(parseFloat(this.value));
-        });
-        rangeInput.value = String(layer.getOpacity());
-    }
-
-    // Handle visibility for OSM layer
-    handleLayerVisibility(map.getLayers().item(0), 'visible0');
-
-    // Handle visibility for QGIS layer 1
-    handleLayerVisibility(vectorLayer1, 'visible1');
-
-    // Handle visibility for QGIS layer 2
-    handleLayerVisibility(vectorLayer2, 'visible2');
-
-    // Handle opacity for QGIS layer 1
-    handleLayerOpacity(vectorLayer1, 'opacity1');
-
-    // Handle opacity for QGIS layer 2
-    handleLayerOpacity(vectorLayer2, 'opacity2');
-</script>
+    </script>
 </body>
 </html>
