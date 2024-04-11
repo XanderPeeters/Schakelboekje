@@ -41,18 +41,21 @@
             })
         });
 
-        // Load GeoJSON data
-        const geojsonSource = new ol.source.Vector({
+        // Object to store the colors for each layer
+        const layerColors = {};
+
+        // Load GeoJSON data for the first layer
+        const geojsonSource1 = new ol.source.Vector({
             url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
             format: new ol.format.GeoJSON()
         });
 
-        // Style for the GeoJSON features
-        const geojsonStyle = new ol.style.Style({
+        // Style for the first layer
+        const geojsonStyle1 = new ol.style.Style({
             image: new ol.style.Circle({
                 radius: 6,
                 fill: new ol.style.Fill({
-                    color: 'rgba(255, 0, 0, 0.8)' // Flashy red fill color
+                    color: 'rgba(255, 0, 0, 0.8)' // Red fill color
                 }),
                 stroke: new ol.style.Stroke({
                     color: 'rgba(255, 0, 0, 1)', // Red stroke color
@@ -61,14 +64,70 @@
             })
         });
 
-        // Create the vector layer
-        const vectorLayer = new ol.layer.Vector({
-            source: geojsonSource,
-            style: geojsonStyle
+        // Create the first vector layer
+        const vectorLayer1 = new ol.layer.Vector({
+            source: geojsonSource1,
+            style: geojsonStyle1
         });
 
-        // Add the vector layer to the map
-        map.addLayer(vectorLayer);
+        // Add the first vector layer to the map
+        map.addLayer(vectorLayer1);
+
+        // Load GeoJSON data for the second layer
+        const geojsonSource2 = new ol.source.Vector({
+            url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voedingen3.geojson',
+            format: new ol.format.GeoJSON()
+        });
+
+        // Function to generate a random color
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random() * 16777215).toString(16);
+        }
+
+        // Style for the second layer (lines) with dynamic color and label
+        const geojsonStyle2 = function(feature) {
+            const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
+            let color;
+            if (layerColors[layerName]) {
+                // If color is already assigned, reuse it
+                color = layerColors[layerName];
+            } else {
+                // Otherwise, generate a new random color and store it
+                color = getRandomColor();
+                layerColors[layerName] = color;
+            }
+            // Create style for the feature
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: color, // Use the color
+                    width: 3
+                }),
+                text: new ol.style.Text({
+                    text: layerName, // Display the layer name as label
+                    font: '12px Calibri,sans-serif',
+                    offsetY: -12,
+                    fill: new ol.style.Fill({ color: color }) // Use the same color for the label
+                })
+            });
+        };
+
+        // Create the second vector layer with the dynamic style function
+        const vectorLayer2 = new ol.layer.Vector({
+            source: geojsonSource2,
+            style: geojsonStyle2
+        });
+
+        // Add the second vector layer to the map
+        map.addLayer(vectorLayer2);
+
+        // Troubleshooting: Add an event listener to check for errors
+        vectorLayer2.getSource().on('change', function(evt) {
+            if (vectorLayer2.getSource().getState() === 'ready') {
+                console.log('Data loaded successfully.');
+            } else if (vectorLayer2.getSource().getState() === 'error') {
+                console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
+            }
+        });
     </script>
 </body>
 </html>
