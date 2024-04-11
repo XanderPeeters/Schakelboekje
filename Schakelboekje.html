@@ -94,6 +94,7 @@
     </div>
     <div class="control-box">
         <button onclick="zoomToLocationOrLayer()">Zoeken</button>
+        <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
     </div>
 </div>
 <div id="map"></div>
@@ -237,22 +238,43 @@
     function zoomToLocationOrLayer() {
         const searchText = document.getElementById('searchInput').value;
         if (searchText) {
-            // Check if the search text matches a feeder name
-            let foundFeeder = false;
+            let foundLayer2 = false;
+            let foundLayer1 = false;
+            // Check if the search text matches a feature in Layer 2
             vectorLayer2.getSource().forEachFeature(function(feature) {
                 if (feature.get('LAYER') === searchText) {
                     const extent = feature.getGeometry().getExtent();
                     map.getView().fit(extent, { duration: 1000 });
-                    foundFeeder = true;
+                    foundLayer2 = true;
                     return;
                 }
             });
-            // If no feeder found, try to geocode the search text as an address
-            if (!foundFeeder) {
+            // If not found in Layer 2, check Layer 1
+            if (!foundLayer2) {
+                vectorLayer1.getSource().forEachFeature(function(feature) {
+                    if (feature.get('LAYER') === searchText) {
+                        const extent = feature.getGeometry().getExtent();
+                        map.getView().fit(extent, { duration: 1000 });
+                        foundLayer1 = true;
+                        return;
+                    }
+                });
+            }
+            // If not found in Layer 1, try to geocode the search text as an address
+            if (!foundLayer2 && !foundLayer1) {
                 geocodeAddress(searchText);
             }
+            // Display error message if nothing is found
+            if (!foundLayer2 && !foundLayer1 && !searchText) {
+                document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            } else {
+                document.getElementById('errorMessage').textContent = ''; // Clear error message
+            }
+        } else {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
         }
     }
+
 
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
