@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.4/xlsx.full.min.js"></script> <!-- Include SheetJS library -->
     <style>
         body {
             margin: 0;
@@ -121,6 +122,48 @@
 <div id="map"></div>
 
 <script>
+    // Load Excel file from server
+async function loadExcelFile() {
+    try {
+        const response = await fetch('/Sectieschakelaars.xlsx'); // Update the path as needed
+        if (!response.ok) {
+            throw new Error('Failed to fetch Excel file');
+        }
+        const buffer = await response.arrayBuffer();
+        return new Uint8Array(buffer);
+    } catch (error) {
+        console.error('Error loading Excel file:', error);
+        throw error;
+    }
+}
+
+// Function to find the S-value corresponding to a given V-value
+async function findSValue(vValue) {
+    try {
+        // Load the Excel file
+        const excelData = await loadExcelFile();
+
+        // Parse the Excel file
+        const workbook = XLSX.read(excelData, { type: 'array' });
+
+        // Access the first worksheet
+        const worksheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[worksheetName];
+
+        // Convert the worksheet to JSON format
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Find the corresponding S-value for the given V-value
+        const sValueRow = jsonData.find(row => row[0] === vValue);
+
+        // Return the S-value if found
+        return sValueRow ? sValueRow[1] : 'Not found';
+    } catch (error) {
+        console.error('Error reading Excel file:', error);
+        throw error;
+    }
+}
+
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
     const extentSize = 25000; // Size of the extent in meters (10 km = 10000 meters)
     const extent = ol.extent.buffer(center.concat(center), extentSize);
@@ -130,8 +173,6 @@
         zoom: 13,
         extent: extent // Set the extent
     });
-
-    let popupDisplayed = false;
 
     const map = new ol.Map({
         layers: [
@@ -146,7 +187,7 @@
         view: view // Use the view with the custom extent
     });
 
-    const pointerElement = document.createElement('i');
+     const pointerElement = document.createElement('i');
     pointerElement.className = 'pointer fa-solid fa-location-dot';
     const pointerOverlay = new ol.Overlay({
         element: pointerElement,
@@ -164,53 +205,41 @@
     });
     map.addOverlay(popupOverlay);
 
-    map.on('click', function(event) {
-        const clickedCoordinates = event.coordinate;
-
-        // Remove pin and popup if already displayed
-        if (popupDisplayed) {
-            pointerOverlay.setPosition(undefined);
-            popupOverlay.setPosition(undefined);
-            popupDisplayed = false;
-            return; // Exit the function early
+    map.on('click', async function(event) {
+    const coordinates = event.coordinate;
+    const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
+    let closestFeature = null;
+    let closestDistance = Infinity;
+    vectorLayer2.getSource().forEachFeature(function(feature) {
+        const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
+        const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+        const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestFeature = feature;
         }
-
-        // Find the closest feature in the "voedingen3" layer
-        let closestFeature = null;
-        let closestDistance = Infinity;
-        vectorLayer2.getSource().forEachFeature(function(feature) {
-            const featureExtent = feature.getGeometry().getExtent();
-            const featureCenter = ol.extent.getCenter(featureExtent);
-            const featureCoordinates = ol.proj.fromLonLat(featureCenter);
-            const distance = ol.sphere.getDistance(featureCoordinates, clickedCoordinates);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestFeature = feature;
-            }
-        });
-
-        // Display the popup with information
-        if (closestFeature) {
-            const closestFeatureName = closestFeature.get('LAYER');
-            const lon = clickedCoordinates[0];
-            const lat = clickedCoordinates[1];
-            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p>`;
-            popupElement.innerHTML = content;
-            popupOverlay.setPosition(clickedCoordinates);
-            popupDisplayed = true;
-        } else {
-            // If no feature found, display coordinates only
-            const lon = clickedCoordinates[0];
-            const lat = clickedCoordinates[1];
-            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-            popupElement.innerHTML = content;
-            popupOverlay.setPosition(clickedCoordinates);
-            popupDisplayed = true;
-        }
-
-        // Display the pointer at the clicked coordinates
-        pointerOverlay.setPosition(clickedCoordinates);
     });
+
+    if (closestFeature) {
+        const closestFeatureName = closestFeature.get('LAYER');
+        const lon = transfcoordinates[0];
+        const lat = transfcoordinates[1];
+        const vValue = closestFeatureName; // Example value, replace this with the actual V-value of the closest feature
+        const sValue = await findSValue(vValue);
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p><p>S-value: ${sValue}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(coordinates);
+    } else {
+        const lon = transfcoordinates[0];
+        const lat = transfcoordinates[1];
+        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+        popupElement.innerHTML = content;
+        popupOverlay.setPosition(coordinates);
+    }
+
+    pointerOverlay.setPosition(coordinates);
+});
+
 
 
     // Object to store the colors for each layer
@@ -298,6 +327,15 @@
     // Add the second vector layer to the map
     map.addLayer(vectorLayer2);
 
+    // Troubleshooting: Add an event listener to check for errors
+    vectorLayer2.getSource().on('change', function(evt) {
+        if (vectorLayer2.getSource().getState() === 'ready') {
+            console.log('Data loaded successfully.');
+        } else if (vectorLayer2.getSource().getState() === 'error') {
+            console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
+        }
+    });
+
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
         const checkbox = document.getElementById(checkboxId);
@@ -315,21 +353,17 @@
         rangeInput.value = String(layer.getOpacity());
     }
 
+    // Function to zoom to a specific location or layer
     function zoomToLocationOrLayer() {
         const searchText = document.getElementById('searchInput').value;
-        // Clear previous error message
-        document.getElementById('errorMessage').textContent = '';
         if (searchText) {
             let foundLayer2 = false;
             let foundLayer1 = false;
             // Check if the search text matches a feature in Layer 2
             vectorLayer2.getSource().forEachFeature(function(feature) {
                 if (feature.get('LAYER') === searchText) {
-                    const featureExtent = feature.getGeometry().getExtent();
-                    const featureCenter = ol.extent.getCenter(featureExtent);
-                    const featureCoordinates = ol.proj.fromLonLat(featureCenter);
-                    map.getView().fit(featureExtent, { duration: 1000 });
-                    displayLayerPinAndPopup(featureCoordinates); // Display pin and popup at the location
+                    const extent = feature.getGeometry().getExtent();
+                    map.getView().fit(extent, { duration: 1000 });
                     foundLayer2 = true;
                     return;
                 }
@@ -338,32 +372,32 @@
             if (!foundLayer2) {
                 vectorLayer1.getSource().forEachFeature(function(feature) {
                     if (feature.get('LAYER') === searchText) {
-                        const featureExtent = feature.getGeometry().getExtent();
-                        const featureCenter = ol.extent.getCenter(featureExtent);
-                        const featureCoordinates = ol.proj.fromLonLat(featureCenter);
-                        map.getView().fit(featureExtent, { duration: 1000 });
-                        displayLayerPinAndPopup(featureCoordinates); // Display pin and popup at the location
+                        const extent = feature.getGeometry().getExtent();
+                        map.getView().fit(extent, { duration: 1000 });
                         foundLayer1 = true;
                         return;
                     }
                 });
             }
-
-            // If not found in Layer 1 or Layer 2, attempt to geocode address
+            // If not found in Layer 1, try to geocode the search text as an address
             if (!foundLayer2 && !foundLayer1) {
-                geocodeAddress(searchText); // Attempt to geocode the address
+                geocodeAddress(searchText);
+            }
+            // Display error message if nothing is found
+            if (!foundLayer2 && !foundLayer1 && !searchText) {
+                document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            } else {
+                document.getElementById('errorMessage').textContent = ''; // Clear error message
             }
         } else {
-             document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
         }
     }
 
+
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
-        const postalcode = '2000';
-        const city = 'Antwerpen';
-        const query = encodeURIComponent(address) + ' ' + postalcode + ' ' + city;
-        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + query;
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
         fetch(url)
             .then(function(response) {
                 return response.json();
@@ -373,51 +407,13 @@
                     const location = data[0];
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
-                    displayAddressPinAndPopup(coordinates); // Pass coordinates instead of extent
                 } else {
-                    document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+                    alert('Address not found!');
                 }
             })
             .catch(function(error) {
                 console.error('Error geocoding address:', error);
             });
-    }
-
-
-    function displayAddressPinAndPopup(coordinates) {
-        const position = ol.proj.fromLonLat(coordinates);
-
-        // Remove existing pin and popup
-        pointerOverlay.setPosition(undefined);
-        popupOverlay.setPosition(undefined);
-
-        // Set pin position
-        pointerOverlay.setPosition(position);
-
-        // Display popup
-        const lon = coordinates[0];
-        const lat = coordinates[1];
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(position);
-    }
-
-    function displayLayerPinAndPopup(coordinates) {
-        const position = ol.proj.fromLonLat(coordinates);
-
-        // Remove existing pin and popup
-        pointerOverlay.setPosition(undefined);
-        popupOverlay.setPosition(undefined);
-
-        // Set pin position
-        pointerOverlay.setPosition(position);
-
-        // Display popup
-        const lon = coordinates[0];
-        const lat = coordinates[1];
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(position);
     }
 
     // Handle visibility for OSM layer
