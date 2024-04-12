@@ -118,42 +118,51 @@
         <button onclick="zoomToLocationOrLayer()">Zoeken</button>
         <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
     </div>
+    <div class="control-box">
+        <button id="tekenButton" onclick="toggleDrawing()">Teken</button>
+    </div>
 </div>
 <div id="map"></div>
 
 <script>
+    let map;
+    let draw;
+
     // Load JSON file from server
-async function loadJSONFile() {
-    try {
-        const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-        if (!response.ok) {
-            throw new Error('Failed to fetch JSON file');
+    async function loadJSONFile() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading JSON file:', error);
+            throw error;
         }
-        return await response.json();
-    } catch (error) {
-        console.error('Error loading JSON file:', error);
-        throw error;
     }
-}// Function to find the S-value corresponding to a given V-value
-async function findSValue(vValue) {
-    try {
-        // Load JSON file from server
-        const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-        if (!response.ok) {
-            throw new Error('Failed to fetch JSON file');
+
+    // Function to find the S-value corresponding to a given V-value
+    async function findSValue(vValue) {
+        try {
+            // Load JSON file from server
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            const jsonData = await response.json();
+
+            // Find the corresponding S-value for the given V-value
+            const sValueRow = jsonData.find(row => row[0] === vValue);
+
+            // Return the S-value if found
+            return sValueRow ? sValueRow[1] : 'Not found';
+        } catch (error) {
+            console.error('Error reading JSON file:', error);
+            throw error;
         }
-        const jsonData = await response.json();
-
-        // Find the corresponding S-value for the given V-value
-        const sValueRow = jsonData.find(row => row[0] === vValue);
-
-        // Return the S-value if found
-        return sValueRow ? sValueRow[1] : 'Not found';
-    } catch (error) {
-        console.error('Error reading JSON file:', error);
-        throw error;
     }
-}
+
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
     const extentSize = 25000; // Size of the extent in meters (10 km = 10000 meters)
     const extent = ol.extent.buffer(center.concat(center), extentSize);
@@ -164,7 +173,14 @@ async function findSValue(vValue) {
         extent: extent // Set the extent
     });
 
-    const map = new ol.Map({
+    let popupDisplayed = false;
+    let drawingModeActive = false;
+    let drawnFeaturesSource = new ol.source.Vector(); // Source to hold drawn features
+    let drawnFeaturesLayer = new ol.layer.Vector({ // Layer to display drawn features
+        source: drawnFeaturesSource,
+    });
+
+    map = new ol.Map({
         layers: [
             new ol.layer.Tile({
                 source: new ol.source.TileJSON({
@@ -177,7 +193,7 @@ async function findSValue(vValue) {
         view: view // Use the view with the custom extent
     });
 
-     const pointerElement = document.createElement('i');
+    const pointerElement = document.createElement('i');
     pointerElement.className = 'pointer fa-solid fa-location-dot';
     const pointerOverlay = new ol.Overlay({
         element: pointerElement,
@@ -195,42 +211,135 @@ async function findSValue(vValue) {
     });
     map.addOverlay(popupOverlay);
 
+    function toggleDrawing() {
+        if (drawingModeActive) {
+            // Clear previously drawn features if exiting drawing mode
+            drawnFeaturesSource.clear();
+            map.removeInteraction(draw);
+            document.getElementById('tekenButton').style.backgroundColor = '';
+        } else {
+            // Clear previously drawn features if starting a new drawing
+            drawnFeaturesSource.clear();
+            document.getElementById('tekenButton').style.backgroundColor = 'green';
+            initDrawingInteraction();
+        }
+        drawingModeActive = !drawingModeActive;
+    }
+
+    function initDrawingInteraction() {
+        draw = new ol.interaction.Draw({
+            source: drawnFeaturesSource,
+            type: 'Polygon',
+        });
+        map.addInteraction(draw);
+
+        draw.on('drawend', function(event) {
+            // Clear previous polygon
+            drawnFeaturesSource.clear();
+
+            // Lock the current polygon
+            const polygonFeature = event.feature;
+            const polygonGeometry = polygonFeature.getGeometry();
+
+            polygonFeature.setStyle(new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 2,
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.2)',
+                }),
+            }));
+
+            // Add the drawn feature to the permanent layer
+            drawnFeaturesSource.addFeature(polygonFeature);
+
+            // Perform spatial query against features in Layer 2
+            const intersectingFeatures = [];
+            vectorLayer2.getSource().forEachFeature(function(feature) {
+                const featureGeometry = feature.getGeometry();
+                if (featureGeometry.intersectsPolygon(polygonGeometry)) {
+                    intersectingFeatures.push(feature);
+                }
+            });
+            // Display popup with information about intersecting features
+            if (intersectingFeatures.length > 0) {
+                const popupContent = intersectingFeatures.map(function(feature) {
+                    const layerName = feature.get('LAYER');
+                    const lonLat = ol.proj.toLonLat(feature.getGeometry().getCoordinates());
+                    const lon = lonLat[0];
+                    const lat = lonLat[1];
+                    return `<p>Layer: ${layerName}</p><p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+                }).join('<hr>'); // Separate feature information with horizontal line
+                popupElement.innerHTML = popupContent;
+                const centroid = polygonGeometry.getInteriorPoint().getCoordinates(); // Get the centroid of the polygon
+                const popupPosition = ol.proj.fromLonLat(centroid);
+                popupOverlay.setPosition(popupPosition);
+            } else {
+                // If no intersecting features, display a message
+                popupElement.innerHTML = '<p>No features found in the drawn area.</p>';
+                popupOverlay.setPosition(undefined); // Hide popup
+            }
+
+            // Clear the drawing interaction (but keep it active)
+            draw.finishDrawing();
+        });
+    }
+
     map.on('click', async function(event) {
-    const coordinates = event.coordinate;
-    const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
-    let closestFeature = null;
-    let closestDistance = Infinity;
-    vectorLayer2.getSource().forEachFeature(function(feature) {
-        const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
-        const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
-        const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
-        if (distance < closestDistance) {
-            closestDistance = distance;
-            closestFeature = feature;
+        if(drawingModeActive) {
+            //No functionality yet
+        } else {
+            const coordinates = event.coordinate;
+            const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
+            let closestFeature = null;
+            let closestDistance = Infinity;
+            vectorLayer2.getSource().forEachFeature(function(feature) {
+                const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
+                const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+                const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestFeature = feature;
+                }
+            });
+
+            if (closestFeature) {
+                const closestFeatureName = closestFeature.get('LAYER');
+                const lon = transfcoordinates[0];
+                const lat = transfcoordinates[1];
+                const vValue = closestFeatureName; // Example value, replace this with the actual V-value of the closest feature
+                const sValue = await findSValue(vValue);
+                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p><p>S-value: ${sValue}</p>`;
+                popupElement.innerHTML = content;
+                popupOverlay.setPosition(coordinates);
+            } else {
+                const lon = transfcoordinates[0];
+                const lat = transfcoordinates[1];
+                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+                popupElement.innerHTML = content;
+                popupOverlay.setPosition(coordinates);
+            }
+
+            pointerOverlay.setPosition(coordinates);
         }
     });
 
-    if (closestFeature) {
-        const closestFeatureName = closestFeature.get('LAYER');
-        const lon = transfcoordinates[0];
-        const lat = transfcoordinates[1];
-        const vValue = closestFeatureName; // Example value, replace this with the actual V-value of the closest feature
-        const sValue = await findSValue(vValue);
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p><p>S-value: ${sValue}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(coordinates);
-    } else {
-        const lon = transfcoordinates[0];
-        const lat = transfcoordinates[1];
-        const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-        popupElement.innerHTML = content;
-        popupOverlay.setPosition(coordinates);
-    }
+    map.on('dblclick', function(event) {
+        if (drawingModeActive) {
+            // Prevent map zoom on double-click during drawing mode
+            event.preventDefault();
+        }
+    });
 
-    pointerOverlay.setPosition(coordinates);
-});
-
-
+    map.getViewport().addEventListener('contextmenu', function(event) {
+        if (drawingModeActive) {
+            // Finish drawing on right-click
+            event.preventDefault();
+            draw.finishDrawing();
+        }
+    });
+    map.addLayer(drawnFeaturesLayer);
 
     // Object to store the colors for each layer
     const layerColors = {};
