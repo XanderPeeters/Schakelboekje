@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -174,19 +175,14 @@
             return; // Exit the function early
         }
 
-        // Transform the clicked coordinates to the same projection as the features
-        const clickedCoords = ol.proj.transform(clickedCoordinates, 'EPSG:3857', 'EPSG:4326');
-
         // Find the closest feature in the "voedingen3" layer
         let closestFeature = null;
         let closestDistance = Infinity;
         vectorLayer2.getSource().forEachFeature(function(feature) {
-            // Transform the feature coordinates to the same projection as the clicked coordinates
-            const featureCoordinates = feature.getGeometry().getClosestPoint(clickedCoordinates);
-            const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
-
-            // Calculate the distance using transformed coordinates
-            const distance = ol.sphere.getDistance(clickedCoords, featureCoords);
+            const featureExtent = feature.getGeometry().getExtent();
+            const featureCenter = ol.extent.getCenter(featureExtent);
+            const featureCoordinates = ol.proj.fromLonLat(featureCenter);
+            const distance = ol.sphere.getDistance(featureCoordinates, clickedCoordinates);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestFeature = feature;
@@ -329,10 +325,11 @@
             // Check if the search text matches a feature in Layer 2
             vectorLayer2.getSource().forEachFeature(function(feature) {
                 if (feature.get('LAYER') === searchText) {
-                    const extent = feature.getGeometry().getExtent();
-                    map.getView().fit(extent, { duration: 1000 });
-                    const coordinates = ol.extent.getCenter(extent);
-                    displayLayerPinAndPopup(coordinates); // Display pin and popup at the location
+                    const featureExtent = feature.getGeometry().getExtent();
+                    const featureCenter = ol.extent.getCenter(featureExtent);
+                    const featureCoordinates = ol.proj.fromLonLat(featureCenter);
+                    map.getView().fit(featureExtent, { duration: 1000 });
+                    displayLayerPinAndPopup(featureCoordinates); // Display pin and popup at the location
                     foundLayer2 = true;
                     return;
                 }
@@ -341,10 +338,11 @@
             if (!foundLayer2) {
                 vectorLayer1.getSource().forEachFeature(function(feature) {
                     if (feature.get('LAYER') === searchText) {
-                        const extent = feature.getGeometry().getExtent();
-                        map.getView().fit(extent, { duration: 1000 });
-                        const coordinates = ol.extent.getCenter(extent);
-                        displayLayerPinAndPopup(coordinates); // Display pin and popup at the location
+                        const featureExtent = feature.getGeometry().getExtent();
+                        const featureCenter = ol.extent.getCenter(featureExtent);
+                        const featureCoordinates = ol.proj.fromLonLat(featureCenter);
+                        map.getView().fit(featureExtent, { duration: 1000 });
+                        displayLayerPinAndPopup(featureCoordinates); // Display pin and popup at the location
                         foundLayer1 = true;
                         return;
                     }
@@ -387,9 +385,7 @@
 
 
     function displayAddressPinAndPopup(coordinates) {
-        const lon = coordinates[0];
-        const lat = coordinates[1];
-        const position = ol.proj.fromLonLat([lon, lat]);
+        const position = ol.proj.fromLonLat(coordinates);
 
         // Remove existing pin and popup
         pointerOverlay.setPosition(undefined);
@@ -399,16 +395,15 @@
         pointerOverlay.setPosition(position);
 
         // Display popup
+        const lon = coordinates[0];
+        const lat = coordinates[1];
         const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
         popupElement.innerHTML = content;
         popupOverlay.setPosition(position);
     }
 
-    function displayLayerPinAndPopup(extent) {
-        const center = ol.extent.getCenter(extent);
-        const lon = center[0];
-        const lat = center[1];
-        const position = ol.proj.fromLonLat([lon, lat]);
+    function displayLayerPinAndPopup(coordinates) {
+        const position = ol.proj.fromLonLat(coordinates);
 
         // Remove existing pin and popup
         pointerOverlay.setPosition(undefined);
@@ -418,6 +413,8 @@
         pointerOverlay.setPosition(position);
 
         // Display popup
+        const lon = coordinates[0];
+        const lat = coordinates[1];
         const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
         popupElement.innerHTML = content;
         popupOverlay.setPosition(position);
