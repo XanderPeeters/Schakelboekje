@@ -294,43 +294,47 @@
     }
 
     map.on('click', async function(event) {
-        if(drawingModeActive) {
-            //No functionality yet
-        } else {
-            const coordinates = event.coordinate;
-            const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
-            let closestFeature = null;
-            let closestDistance = Infinity;
-            vectorLayer2.getSource().forEachFeature(function(feature) {
-                const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
-                const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
-                const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    closestFeature = feature;
-                }
-            });
-
-            if (closestFeature) {
-                const closestFeatureName = closestFeature.get('LAYER');
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
-                const vValue = closestFeatureName; // Example value, replace this with the actual V-value of the closest feature
-                const sValue = await findSValue(vValue);
-                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p><p>Closest Feature: ${closestFeatureName}</p><p>S-value: ${sValue}</p>`;
-                popupElement.innerHTML = content;
-                popupOverlay.setPosition(coordinates);
-            } else {
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
-                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-                popupElement.innerHTML = content;
-                popupOverlay.setPosition(coordinates);
+    if(drawingModeActive) {
+        //No functionality yet
+    } else {
+        const coordinates = event.coordinate;
+        const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
+        let closestFeature = null;
+        let closestDistance = Infinity;
+        vectorLayer2.getSource().forEachFeature(function(feature) {
+            const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
+            const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+            const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestFeature = feature;
             }
+        });
 
-            pointerOverlay.setPosition(coordinates);
+        if (closestFeature) {
+            const closestFeatureName = closestFeature.get('LAYER');
+            const lon = transfcoordinates[0];
+            const lat = transfcoordinates[1];
+            const vValue = closestFeatureName;
+            const sValue = await findSValue(vValue);
+            const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
+            const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
+            const content = `<h4> Location information: </h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
+            popupElement.innerHTML = content;
+            popupOverlay.setPosition(coordinates);
+        } else {
+            const lon = transfcoordinates[0];
+            const lat = transfcoordinates[1];
+            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+            popupElement.innerHTML = content;
+            popupOverlay.setPosition(coordinates);
         }
-    });
+
+        pointerOverlay.setPosition(coordinates);
+    }
+});
+
+
 
     map.on('dblclick', function(event) {
         if (drawingModeActive) {
@@ -381,6 +385,33 @@
             })
         });
     };
+
+    function findEdgeFeeders(mainFeederName) {
+    const edgeFeedersSet = new Set();
+
+    // Find all instances of the main feeder
+    const mainFeederFeatures = [];
+    vectorLayer2.getSource().forEachFeature(function(feature) {
+        const featureName = feature.get('LAYER');
+        if (featureName === mainFeederName) {
+            mainFeederFeatures.push(feature);
+        }
+    });
+
+    // Iterate through main feeder instances and find intersecting edge feeders
+    mainFeederFeatures.forEach(function(mainFeederFeature) {
+        const mainFeederGeometry = mainFeederFeature.getGeometry();
+        vectorLayer2.getSource().forEachFeature(function(innerFeature) {
+            const innerFeatureName = innerFeature.get('LAYER');
+            if (innerFeatureName !== mainFeederName && mainFeederGeometry.intersectsExtent(innerFeature.getGeometry().getExtent())) {
+                edgeFeedersSet.add(innerFeatureName); // Add to the Set
+            }
+        });
+    });
+
+    return edgeFeedersSet;
+}
+
 
     // Create the first vector layer
     const vectorLayer1 = new ol.layer.Vector({
