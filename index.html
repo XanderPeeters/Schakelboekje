@@ -653,7 +653,7 @@
         rows[0].style.display = 'table-row';
 
         function showPage(page) {
-            const startIndex = page * itemsPerPage + 1; // Start from index 1 to skip the header row
+            const startIndex = page * itemsPerPage + 1; // Start from index 1 to skip the header roww
             const endIndex = Math.min(startIndex + itemsPerPage, rows.length);
 
             for (let i = 1; i < rows.length; i++) { // Start from index 1 to skip the header row
