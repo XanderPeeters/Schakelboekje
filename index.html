@@ -104,9 +104,231 @@
         .control-box button:hover {
             background-color: #0056b3; /* Darker blue on hover */
         }
+
+        /* Modal styles */
+        .modal {
+            display: none; /* Hide the modal by default */
+            position: fixed; /* Position the modal */
+            z-index: 1000; /* Set a high z-index to ensure it's above other elements */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scrolling if needed */
+            background-color: rgba(0, 0, 0, 0.5); /* Black background with transparency */
+        }
+
+        /* Modal content */
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* Center modal vertically and horizontally */
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 5px;
+            max-width: 600px; /* Set maximum width of the modal */
+        }
+
+        /* Close button */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #logButtonContainer {
+            position: absolute;
+            top: 10px; /* Adjust as needed */
+            right: 10px; /* Adjust as needed */
+            z-index: 1000; /* Ensure it's above other elements */
+        }
+
+        #logButton {
+            width: 100px; /* Adjust width as needed */
+            padding: 8px; /* Adjust padding as needed */
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+            border-radius: 5px; /* Rounded corners */
+            font-size: 16px; /* Adjust font size as needed */
+        }
+
+        #logButton:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+         #logModal .modal-content input[type="date"] {
+            margin-bottom: 20px; /* Adjust the value as needed */
+         }
+
+         #logModal .modal-content table {
+            width: 100%;
+         }
+
+        .control-box {
+            margin-bottom: 10px;
+        }
+
+        .control-box label {
+            display: block; /* Each label on a new line */
+            margin-bottom: 5px; /* Add space between labels */
+            font-weight: bold; /* Make label text bold */
+        }
+
+        .control-box input[type="text"],
+        .control-box input[type="range"],
+        .control-box button {
+            width: 100%; /* Take up full width */
+            padding: 5px; /* Add padding */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        .control-box button {
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+        }
+
+        .control-box button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        /* Styles for buttons inside logModal */
+        #logModal .modal-content button {
+            width: auto;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        #logModal .modal-content button:hover {
+            background-color: #0056b3;
+        }
+
+        #logModal .modal-content .close:hover,
+        #logModal .modal-content .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Style for page navigation buttons */
+        .pagination button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style for current page navigation button */
+        .pagination button.current-page {
+            background-color: #0056b3; /* Use the same color as hover effect */
+            color: white; /* Make text color white for better visibility */
+            font-weight: bold;
+        }
+
+        .pagination button.active {
+            background-color: #0056b3 !important;
+            border: 1px solid #007bff !important;
+        }
+
+        /* Style for disabled page navigation buttons */
+        .pagination button.disabled {
+            background-color: #ddd;
+            color: #999;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 <body>
+<div id="logButtonContainer">
+    <button id="logButton" onclick="openLogModal()">Log</button>
+</div>
+
+<!-- Modal -->
+<div id="logModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLogModal()">&times;</span>
+        <h2>Log Data</h2>
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">
+        <table id="logTable" border = "1">
+            <thead>
+                <tr>
+                    <th>Switch</th>
+                    <th>State</th>
+                    <th>User</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>S812</td>
+                    <td>Open</td>
+                    <td>EX1058</td>
+                    <td>17/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S813</td>
+                    <td>Open</td>
+                    <td>Ex1058</td>
+                    <td>13/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S715</td>
+                    <td>Closed</td>
+                    <td>EX1057</td>
+                    <td>07/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S716</td>
+                    <td>Open</td>
+                    <td>EX1093</td>
+                    <td>30/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S723</td>
+                    <td>Closed</td>
+                    <td>EX1102</td>
+                    <td>22/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S596</td>
+                    <td>Closed</td>
+                    <td>EX1058</td>
+                    <td>18/03/2024</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div id="controls">
     <div class="control-box">
         <label for="visible0">Kaart:</label>
@@ -355,6 +577,8 @@
         }
     }
 
+
+
     // Add a click event listener to the pin element
     pointerElement.addEventListener('click', function(event) {
         // Prevent the singleclick event on the map from firing
@@ -418,6 +642,135 @@
             })
         });
     };
+
+   document.addEventListener('DOMContentLoaded', function () {
+        const logTable = document.getElementById('logTable');
+        const rows = logTable.getElementsByTagName('tr');
+        const itemsPerPage = 2; // Adjust as needed
+        let currentPage = 0;
+
+        // Show the header row
+        rows[0].style.display = 'table-row';
+
+        function showPage(page) {
+            const startIndex = page * itemsPerPage + 1; // Start from index 1 to skip the header row
+            const endIndex = Math.min(startIndex + itemsPerPage, rows.length);
+
+            for (let i = 1; i < rows.length; i++) { // Start from index 1 to skip the header row
+                if (i >= startIndex && i < endIndex) {
+                    rows[i].style.display = 'table-row';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+
+            // Update the showing items text
+            const showingItemsText = document.getElementById('showingItemsText');
+            if (showingItemsText) {
+                const firstItemIndex = startIndex;
+                const lastItemIndex = Math.min(endIndex - 1, rows.length - 1); // Exclude header row
+                showingItemsText.textContent = `Showing item ${firstItemIndex} - ${lastItemIndex} from ${rows.length - 1} items`;
+            }
+
+            // Update active state of page buttons
+            updateActiveButtonState();
+        }
+
+        function navigateToPage(page) {
+            currentPage = page;
+            showPage(currentPage);
+        }
+
+        function setupPagination() {
+            const pageCount = Math.ceil((rows.length - 1) / itemsPerPage); // Exclude header row
+
+            // Create pagination container
+            const paginationContainer = document.createElement('div');
+            paginationContainer.className = 'pagination';
+
+            // First page button
+            const firstPageButton = document.createElement('button');
+            firstPageButton.textContent = '<<';
+            firstPageButton.addEventListener('click', function () {
+                navigateToPage(0);
+            });
+            paginationContainer.appendChild(firstPageButton);
+
+            // Previous page button
+            const prevPageButton = document.createElement('button');
+            prevPageButton.textContent = '<';
+            prevPageButton.addEventListener('click', function () {
+                navigateToPage(Math.max(0, currentPage - 1));
+            });
+            paginationContainer.appendChild(prevPageButton);
+
+            // Page number buttons
+            for (let i = 0; i < pageCount; i++) {
+                const button = document.createElement('button');
+                button.textContent = i + 1;
+                button.addEventListener('click', function () {
+                    navigateToPage(i);
+                });
+                paginationContainer.appendChild(button);
+            }
+
+            // Next page button
+            const nextPageButton = document.createElement('button');
+            nextPageButton.textContent = '>';
+            nextPageButton.addEventListener('click', function () {
+                navigateToPage(Math.min(pageCount - 1, currentPage + 1));
+            });
+            paginationContainer.appendChild(nextPageButton);
+
+            // Last page button
+            const lastPageButton = document.createElement('button');
+            lastPageButton.textContent = '>>';
+            lastPageButton.addEventListener('click', function () {
+                navigateToPage(pageCount - 1);
+            });
+            paginationContainer.appendChild(lastPageButton);
+
+            // Add pagination container after the table
+            logTable.insertAdjacentElement('afterend', paginationContainer);
+
+            // Create and append showing items text
+            const showingItemsText = document.createElement('div');
+            showingItemsText.id = 'showingItemsText';
+            showingItemsText.textContent = `Showing item 1 - ${Math.min(itemsPerPage, rows.length - 1)} from ${rows.length - 1} items`;
+            logTable.insertAdjacentElement('afterend', showingItemsText);
+
+            // Show the initial page
+            showPage(currentPage);
+        }
+
+        // Function to update active state of page buttons
+        function updateActiveButtonState() {
+            const pageButtons = document.querySelectorAll('.pagination button');
+            pageButtons.forEach((button, index) => {
+                if (index === currentPage + 2) { // Index + 2 as we have two additional buttons (<< and <)
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize pagination
+        setupPagination();
+    });
+
+    function openLogModal() {
+        const modal = document.getElementById('logModal');
+        modal.style.display = 'block';
+        // Additional logic to fetch and populate the table data can be added here
+    }
+
+    // Function to close the log modal
+    function closeLogModal() {
+        const modal = document.getElementById('logModal');
+        modal.style.display = 'none';
+    }
+
 
     function findEdgeFeeders(mainFeederName) {
     const edgeFeedersSet = new Set();
