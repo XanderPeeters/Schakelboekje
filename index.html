@@ -45,7 +45,18 @@
             z-index: 1000;
          }
 
-         .popup {
+        .legend {
+            position: absolute;
+            bottom: 40px;
+            left: 310px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .popup {
             position: absolute;
             background-color: white;
             padding: 10px;
@@ -55,6 +66,22 @@
             z-index: 2000;
             top: 20px;
             right: 20px;
+        }
+
+        .popup2 {
+            position: absolute;
+            background-color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            bottom: 35px;
+            right: 10px;
+            width: 200px;
+            height: 300px;
+            overflow: scroll; /* Add overflow property */
+            max-height: 300px; /* Adjust the maximum height as needed */
         }
 
         .control-box {
@@ -121,15 +148,17 @@
     <div class="control-box">
         <button id="tekenButton" onclick="toggleDrawing()">Teken</button>
     </div>
-    <div class="control-box">
+</div>
+<div id="map"></div>
+<div id="popup2" class="popup2" style="display: none;"></div>
+<div class="legend">
     <label>Legende:</label>
     <div>
         <i class="fas fa-dot-circle" style="color: red;"></i> <span style="color: red;">Gesloten</span><br>
         <i class="fas fa-dot-circle" style="color: green;"></i> <span style="color: green;">Open</span>
     </div>
 </div>
-</div>
-<div id="map"></div>
+
 
 <script>
     let map;
@@ -180,6 +209,7 @@
         extent: extent // Set the extent
     });
 
+    let pinClicked = false;
     let popupDisplayed = false;
     let drawingModeActive = false;
     let drawnFeaturesSource = new ol.source.Vector(); // Source to hold drawn features
@@ -297,6 +327,8 @@
     if(drawingModeActive) {
         //No functionality yet
     } else {
+        handlePinClick();
+        const popup2Element = document.querySelector('.popup2');
         const coordinates = event.coordinate;
         const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
         let closestFeature = null;
@@ -319,20 +351,44 @@
             const sValue = await findSValue(vValue);
             const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
             const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
-            const content = `<h4> Location information: </h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
-            popupElement.innerHTML = content;
+            const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
+            popup2Element.innerHTML = content;
             popupOverlay.setPosition(coordinates);
         } else {
             const lon = transfcoordinates[0];
             const lat = transfcoordinates[1];
             const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-            popupElement.innerHTML = content;
+            popupElement2.innerHTML = content;
             popupOverlay.setPosition(coordinates);
         }
 
         pointerOverlay.setPosition(coordinates);
     }
 });
+
+
+
+
+
+    // Function to handle the pin click event
+    function handlePinClick() {
+        pinClicked = !pinClicked;
+        if (pinClicked) {
+            document.getElementById('popup2').style.display = 'block';
+        } else {
+            document.getElementById('popup2').style.display = 'none';
+        }
+    }
+
+    // Add a click event listener to the pin element
+    pointerElement.addEventListener('click', function(event) {
+        // Prevent the singleclick event on the map from firing
+        event.stopPropagation();
+        handlePinClick();
+    });
+
+
+
 
 
 
