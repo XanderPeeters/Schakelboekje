@@ -920,7 +920,10 @@
 
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
-        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address);
+        const postalcode = '2000';
+        const city = 'Antwerpen';
+        const fullAddress = address + ', ' + city + ', ' + postalcode;
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(fullAddress);
         fetch(url)
             .then(function(response) {
                 return response.json();
