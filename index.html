@@ -49,30 +49,20 @@
             position: absolute;
             bottom: 40px;
             left: 310px;
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .popup {
-            position: absolute;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 2000;
-            top: 20px;
-            right: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
         }
 
         .popup2 {
             position: absolute;
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 5px 10px;
-            border-radius: 5px;
+            border-radius: 10px;
             border: 1px solid #ccc;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 2000;
@@ -80,8 +70,10 @@
             right: 10px;
             width: 200px;
             height: 300px;
-            overflow: scroll; /* Add overflow property */
-            max-height: 300px; /* Adjust the maximum height as needed */
+            overflow: scroll;
+            max-height: 300px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
         }
 
         .control-box {
@@ -115,7 +107,6 @@
     </style>
 </head>
 <body>
-<div id="popup" class="popup"></div>
 <div id="controls">
     <div class="control-box">
         <label for="visible0">Kaart:</label>
@@ -210,7 +201,6 @@
     });
 
     let pinClicked = false;
-    let popupDisplayed = false;
     let drawingModeActive = false;
     let drawnFeaturesSource = new ol.source.Vector(); // Source to hold drawn features
     let drawnFeaturesLayer = new ol.layer.Vector({ // Layer to display drawn features
@@ -238,15 +228,6 @@
         stopEvent: false
     });
     map.addOverlay(pointerOverlay);
-
-    const popupElement = document.getElementById('popup');
-    const popupOverlay = new ol.Overlay({
-        element: popupElement,
-        positioning: 'top-right',
-        offset: [0, -10],
-        stopEvent: false
-    });
-    map.addOverlay(popupOverlay);
 
     function toggleDrawing() {
         if (drawingModeActive) {
@@ -300,6 +281,8 @@
                 }
             });
             // Display popup with information about intersecting features
+            handlePinClick();
+            const popup2Element = document.querySelector('.popup2');
             if (intersectingFeatures.length > 0) {
                 const popupContent = intersectingFeatures.map(function(feature) {
                     const layerName = feature.get('LAYER');
@@ -308,14 +291,11 @@
                     const lat = lonLat[1];
                     return `<p>Layer: ${layerName}</p><p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
                 }).join('<hr>'); // Separate feature information with horizontal line
-                popupElement.innerHTML = popupContent;
-                const centroid = polygonGeometry.getInteriorPoint().getCoordinates(); // Get the centroid of the polygon
-                const popupPosition = ol.proj.fromLonLat(centroid);
-                popupOverlay.setPosition(popupPosition);
+                popup2Element.innerHTML = popupContent;
+
             } else {
                 // If no intersecting features, display a message
-                popupElement.innerHTML = '<p>No features found in the drawn area.</p>';
-                popupOverlay.setPosition(undefined); // Hide popup
+                popup2Element.innerHTML = '<p>No features found in the drawn area.</p>';
             }
 
             // Clear the drawing interaction (but keep it active)
@@ -353,30 +333,25 @@
             const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
             const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
             popup2Element.innerHTML = content;
-            popupOverlay.setPosition(coordinates);
         } else {
             const lon = transfcoordinates[0];
             const lat = transfcoordinates[1];
             const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
             popupElement2.innerHTML = content;
-            popupOverlay.setPosition(coordinates);
         }
 
         pointerOverlay.setPosition(coordinates);
     }
 });
 
-
-
-
-
     // Function to handle the pin click event
     function handlePinClick() {
-        pinClicked = !pinClicked;
+        pinClicked = true;
+        const popup2Element = document.getElementById('popup2');
         if (pinClicked) {
-            document.getElementById('popup2').style.display = 'block';
+            popup2Element.style.display = 'block';
         } else {
-            document.getElementById('popup2').style.display = 'none';
+            popup2Element.style.display = 'none';
         }
     }
 
@@ -386,11 +361,6 @@
         event.stopPropagation();
         handlePinClick();
     });
-
-
-
-
-
 
     map.on('dblclick', function(event) {
         if (drawingModeActive) {
@@ -404,6 +374,13 @@
             // Finish drawing on right-click
             event.preventDefault();
             draw.finishDrawing();
+        } else {
+           // Prevent the default context menu from appearing
+           event.preventDefault();
+           // Hide the pointer
+           pointerOverlay.setPosition(undefined);
+           const popup2Element = document.getElementById('popup2');
+            popup2Element.style.display = 'none';
         }
     });
     map.addLayer(drawnFeaturesLayer);
