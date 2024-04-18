@@ -35,7 +35,6 @@
             padding: 10px;
             box-sizing: border-box;
             text-align: left; /* Align text to the left */
-            overflow-y: auto;
         }
 
         .pointer {
@@ -114,7 +113,6 @@
             top: 0;
             width: 100%;
             height: 100%;
-            overflow: auto; /* Enable scrolling if needed */
             background-color: rgba(0, 0, 0, 0.5); /* Black background with transparency */
         }
 
@@ -331,7 +329,7 @@
 
 <div id="controls">
     <div class="control-box">
-        <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="100" height="auto" onclick="reloadPage()">
+        <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="75" height="auto" onclick="reloadPage()">
     </div>
     <div class="control-box">
         <label for="visible0">Kaart:</label>
@@ -465,20 +463,27 @@
             drawnFeaturesSource.clear();
             document.getElementById('tekenButton').style.backgroundColor = 'green';
             initDrawingInteraction();
+
         }
         drawingModeActive = !drawingModeActive;
     }
 
     function initDrawingInteraction() {
+        if (!drawnFeaturesSource || !vectorLayer2 || !map) {
+            console.error('Missing required sources or map.');
+            return;
+        }
+
         draw = new ol.interaction.Draw({
             source: drawnFeaturesSource,
             type: 'Polygon',
         });
         map.addInteraction(draw);
 
-        draw.on('drawend', function(event) {
+        draw.on('drawend', async function(event) {
             // Clear previous polygon
             drawnFeaturesSource.clear();
+
 
             // Lock the current polygon
             const polygonFeature = event.feature;
@@ -498,29 +503,49 @@
             drawnFeaturesSource.addFeature(polygonFeature);
 
             // Perform spatial query against features in Layer 2
-            const intersectingFeatures = [];
-            vectorLayer2.getSource().forEachFeature(function(feature) {
+            const intersectingFeatures = new Set();
+            const polygonExtent = polygonGeometry.getExtent();
+
+            const features = vectorLayer2.getSource().getFeatures();
+            await Promise.all(features.map(async (feature) => {
                 const featureGeometry = feature.getGeometry();
-                if (featureGeometry.intersectsPolygon(polygonGeometry)) {
-                    intersectingFeatures.push(feature);
+                const featureExtent = featureGeometry.getExtent();
+                if (ol.extent.intersects(polygonExtent, featureExtent)) {
+                    const layerName = feature.get('LAYER');
+                    const vValue = layerName;
+                    const sValue = await findSValue(vValue);
+                    const edgeFeedersSet = findEdgeFeeders(layerName); // Call the function to find edge feeders
+                    const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
+                    let layerData = { layerName: layerName, edgeFeeders: edgeFeeders, Switches: sValue };
+                    let isNewLayer = true;
+                    for (let data of intersectingFeatures) {
+                        if (data.layerName === layerName) {
+                            isNewLayer = false;
+                            break;
+                        }
+                    }
+                    if (isNewLayer) {
+                        intersectingFeatures.add(layerData);
+                    }
                 }
-            });
+            }));
+
             // Display popup with information about intersecting features
             handlePinClick();
             const popup2Element = document.querySelector('.popup2');
-            if (intersectingFeatures.length > 0) {
-                const popupContent = intersectingFeatures.map(function(feature) {
-                    const layerName = feature.get('LAYER');
-                    const lonLat = ol.proj.toLonLat(feature.getGeometry().getCoordinates());
-                    const lon = lonLat[0];
-                    const lat = lonLat[1];
-                    return `<p>Layer: ${layerName}</p><p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+            if (intersectingFeatures.size > 0) {
+                const popupContent = Array.from(intersectingFeatures).map(function(data) {
+                    const feederName = data.layerName;
+                    const edgeFeeders = data.edgeFeeders;
+                    const switches = data.Switches
+                    return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p><p>Feeders to turn of: </p>`;
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popup2Element.innerHTML = popupContent;
 
             } else {
                 // If no intersecting features, display a message
                 popup2Element.innerHTML = '<p>No features found in the drawn area.</p>';
+                popup2Element.style.display = 'none';
             }
 
             // Clear the drawing interaction (but keep it active)
@@ -601,13 +626,14 @@
             // Finish drawing on right-click
             event.preventDefault();
             draw.finishDrawing();
+
         } else {
            // Prevent the default context menu from appearing
            event.preventDefault();
            // Hide the pointer
            pointerOverlay.setPosition(undefined);
            const popup2Element = document.getElementById('popup2');
-            popup2Element.style.display = 'none';
+           popup2Element.style.display = 'none';
         }
     });
     map.addLayer(drawnFeaturesLayer);
