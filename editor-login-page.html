@@ -578,7 +578,6 @@
 
             } else {
                 // If no intersecting features, display a message
-                popup2Element.innerHTML = '<p>No features found in the drawn area.</p>';
                 popup2Element.style.display = 'none';
             }
 
@@ -588,7 +587,7 @@
     }
 
     map.on('click', async function(event) {
-    if(drawingModeActive) {
+    if (drawingModeActive) {
         //No functionality yet
     } else {
         handlePinClick();
@@ -596,7 +595,7 @@
         const coordinates = event.coordinate;
         const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
         let closestFeature = null;
-        let closestDistance = Infinity;
+        let closestDistance = Infinity; // Initialize with infinity
         vectorLayer2.getSource().forEachFeature(function(feature) {
             const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
             const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
@@ -607,24 +606,29 @@
             }
         });
 
-        if (closestFeature) {
-            const closestFeatureName = closestFeature.get('LAYER');
-            const lon = transfcoordinates[0];
-            const lat = transfcoordinates[1];
-            const vValue = closestFeatureName;
-            const sValue = await findSValue(vValue);
-            const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
-            const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
-            const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
-            popup2Element.innerHTML = content;
-        } else {
-            const lon = transfcoordinates[0];
-            const lat = transfcoordinates[1];
-            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-            popupElement2.innerHTML = content;
-        }
+        // Check if distance exceeds the threshold (for example, 1000 meters)
+        if (closestDistance <= 500) {
+            if (closestFeature) {
+                const closestFeatureName = closestFeature.get('LAYER');
+                const lon = transfcoordinates[0];
+                const lat = transfcoordinates[1];
+                const vValue = closestFeatureName;
+                const sValue = await findSValue(vValue);
+                const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
+                const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
 
-        pointerOverlay.setPosition(coordinates);
+                const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
+                popup2Element.innerHTML = content;
+            } else {
+                const lon = transfcoordinates[0];
+                const lat = transfcoordinates[1];
+                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+                popupElement2.innerHTML = content;
+            }
+        } else {
+            popup2Element.style.display = 'none'; // Hide the popup if distance exceeds threshold
+        }
+    pointerOverlay.setPosition(coordinates);
     }
 });
 
