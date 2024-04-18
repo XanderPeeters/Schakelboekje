@@ -623,48 +623,32 @@
         format: new ol.format.GeoJSON()
     });
 
-    // Define a set of bright colors with high contrastt
-    const brightColors = ['#0000FF', '#FF0000', '#00FF00', '#800080', '#000000', '#FFA500', '#A52A2A', '#008000', '#800000'];
-
-    // Modified style function to use assigned colors for feeders
+    // Style for the second layer (lines) with dynamic color and label
     const geojsonStyle2 = function(feature) {
-        const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
-
-        // Find edge feeders for the current feeder
-        const edgeFeeders = findEdgeFeeders(layerName);
-
-        // Use a copy of the bright colors array to avoid modifying the original array
-        let availableColors = [...brightColors];
-
-        // Remove colors that are already assigned to edge feeders
-        edgeFeeders.forEach(edgeFeeder => {
-            const edgeFeederColor = layerColors[edgeFeeder];
-            if (edgeFeederColor) {
-                availableColors = availableColors.filter(color => color !== edgeFeederColor);
-            }
-        });
-
-        // If no available colors left, assign a random color
-        const color = availableColors.length > 0 ? availableColors[0] : brightColors[Math.floor(Math.random() * brightColors.length)];
-
-        // Store the assigned color for the feeder
-        layerColors[layerName] = color;
-
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
+        let color;
+        if (layerColors[layerName]) {
+            // If color is already assigned, reuse it
+            color = layerColors[layerName];
+        } else {
+            // Otherwise, generate a new random color and store it
+            color = '#' + Math.floor(Math.random() * 16777215).toString(16);
+            layerColors[layerName] = color;
+        }
         // Create style for the feature
         return new ol.style.Style({
             stroke: new ol.style.Stroke({
-                color: color,
+                color: color, // Use the color
                 width: 3
             }),
             text: new ol.style.Text({
-                text: layerName,
+                text: layerName, // Display the layer name as label
                 font: '12px Calibri,sans-serif',
                 offsetY: -12,
-                fill: new ol.style.Fill({ color: color })
+                fill: new ol.style.Fill({ color: color }) // Use the same color for the label
             })
         });
     };
-
 
     // Create the second vector layer with the dynamic style function
     const vectorLayer2 = new ol.layer.Vector({
@@ -674,7 +658,6 @@
 
     // Add the second vector layer to the map
     map.addLayer(vectorLayer2);
-
 
     // Troubleshooting: Add an event listener to check for errors
     vectorLayer2.getSource().on('change', function(evt) {
