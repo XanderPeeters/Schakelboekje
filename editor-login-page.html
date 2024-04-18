@@ -225,9 +225,133 @@
             background-color: #0056b3; /* Darker blue on hover */
         }
 
+        /* Styles for buttons inside logModal */
+        #logModal .modal-content button {
+            width: auto;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        #logModal .modal-content button:hover {
+            background-color: #0056b3;
+        }
+
+        #logModal .modal-content .close:hover,
+        #logModal .modal-content .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Style for page navigation buttons */
+        .pagination button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style for current page navigation button */
+        .pagination button.current-page {
+            background-color: #0056b3; /* Use the same color as hover effect */
+            color: white; /* Make text color white for better visibility */
+            font-weight: bold;
+        }
+
+        .pagination button.active {
+            background-color: #0056b3 !important;
+            border: 1px solid #007bff !important;
+        }
+
+        /* Style for disabled page navigation buttons */
+        .pagination button.disabled {
+            background-color: #ddd;
+            color: #999;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 <body>
+
+<div id="logButtonContainer">
+    <button id="logButton" onclick="openLogModal()">Log</button>
+</div>
+
+<!-- Modal -->
+<div id="logModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeLogModal()">&times;</span>
+        <h2>Log Data</h2>
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">
+        <table id="logTable" border = "1">
+            <thead>
+                <tr>
+                    <th>Switch</th>
+                    <th>State</th>
+                    <th>User</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>S812</td>
+                    <td>Open</td>
+                    <td>EX1058</td>
+                    <td>17/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S813</td>
+                    <td>Open</td>
+                    <td>Ex1058</td>
+                    <td>13/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S715</td>
+                    <td>Closed</td>
+                    <td>EX1057</td>
+                    <td>07/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S716</td>
+                    <td>Open</td>
+                    <td>EX1093</td>
+                    <td>30/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S723</td>
+                    <td>Closed</td>
+                    <td>EX1102</td>
+                    <td>22/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S596</td>
+                    <td>Closed</td>
+                    <td>EX1058</td>
+                    <td>18/03/2024</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <div id="controls">
     <div class="control-box" id="logoAndEditorContainer">
@@ -235,7 +359,7 @@
             <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="75" height="auto" onclick="reloadPage()">
         </div>
         <div id="editorLoginContainer">
-            <button id="editorLoginButton" onclick="openEditorLoginPage()">Editor Login</button>
+            <button id="editorLoginButton" onclick="openEditorLoginPage()">User page</button>
         </div>
     </div>
     <div class="control-box">
@@ -286,7 +410,7 @@
     let draw;
 
     function openEditorLoginPage() {
-        window.location.href = "login.html"; // Redirect to the editor login page
+        window.location.href = "index.html"; // Redirect to the user page again
     }
 
     // Load JSON file from server
