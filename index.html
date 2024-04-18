@@ -331,6 +331,9 @@
 
 <div id="controls">
     <div class="control-box">
+        <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="100" height="auto" onclick="reloadPage()">
+    </div>
+    <div class="control-box">
         <label for="visible0">Kaart:</label>
         <input id="visible0" class="visible" type="checkbox" checked/>
     </div>
@@ -940,6 +943,10 @@
             .catch(function(error) {
                 console.error('Error geocoding address:', error);
             });
+    }
+
+    function reloadPage() {
+        location.reload();
     }
 
     // Handle visibility for OSM layer
