@@ -377,6 +377,10 @@
         <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
+        <label for="backgroundCheckbox">Grijze achtergrond:</label>
+        <input id="backgroundCheckbox" type="checkbox"/>
+    </div>
+    <div class="control-box">
         <label for="opacity1">Transparantie schakelaars:</label>
         <input id="opacity1" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </div>
@@ -965,6 +969,37 @@
         });
         rangeInput.value = String(layer.getOpacity());
     }
+
+    // Function to handle background checkbox changes
+    function handleBackgroundChange() {
+        const backgroundCheckbox = document.getElementById('backgroundCheckbox');
+        const baseLayer = map.getLayers().item(0); // Assuming the base layer is the first layer
+
+        backgroundCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                // If the checkbox is checked, switch to the grey background layer
+                const greyBackgroundLayer = new ol.layer.Tile({
+                    source: new ol.source.TileJSON({
+                        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+                        tileSize: 512,
+                    })
+                });
+                map.getLayers().setAt(0, greyBackgroundLayer); // Set grey background layer as the first layer
+            } else {
+                // If the checkbox is unchecked, switch back to the default background layer
+                const defaultBackgroundLayer = new ol.layer.Tile({
+                    source: new ol.source.TileJSON({
+                        url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+                        tileSize: 512,
+                    })
+                });
+                map.getLayers().setAt(0, defaultBackgroundLayer); // Set default background layer as the first layer
+            }
+        });
+    }
+
+    // Call the function to handle background checkbox changes
+    handleBackgroundChange();
 
     // Function to zoom to a specific location or layer
     function zoomToLocationOrLayer() {
