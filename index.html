@@ -637,31 +637,6 @@
     // Add the first vector layer to the mapp
     map.addLayer(vectorLayer1);
 
-    // Assuming 'vectorLayer1' is the layer containing your switch features
-    vectorLayer1.getSource().on('change', function(event) {
-        if (vectorLayer1.getSource().getState() === 'ready') {
-            vectorLayer1.getSource().forEachFeature(function(feature) {
-                feature.on('click', function(event) {
-                    // Toggle between GeoJSON files
-                    const currentStatus = feature.get('status');
-                    let newGeoJSONFile;
-
-                    if (currentStatus === 'Open') {
-                        newGeoJSONFile = 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/open_switches.geojson';
-                    } else {
-                        newGeoJSONFile = 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/closed_switches.geojson';
-                    }
-
-                    // Update GeoJSON source URL
-                    geojsonSource1.setUrl(newGeoJSONFile);
-
-                    // Refresh the layer
-                    vectorLayer1.getSource().refresh();
-                });
-            });
-        }
-    });
-
 
     // Load GeoJSON data for the second layer
     const geojsonSource2 = new ol.source.Vector({
