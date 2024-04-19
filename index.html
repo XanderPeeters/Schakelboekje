@@ -560,35 +560,23 @@
 
     // Load GeoJSON data for the first layer
     const geojsonSource1 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/closed_switches.geojson',
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
         format: new ol.format.GeoJSON()
     });
 
     // Style for the first layer (dots) with red/green color and label
     const geojsonStyle1 = function(feature) {
-        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
-        const switchStatus = feature.get('status'); // Assuming 'status' is the property indicating switch status
-        if (layerName === 'S735') {
-            // If the LAYER property matches 'S734', log the status property to the console
-            console.log('Status for feeder S735:', switchStatus);
-        }
-        // Determine color based on switch status
-        let color;
-        if (switchStatus === 'Closed') {
-            color = 'red'; // Set color to red for closed switches
-        } else {
-            color = 'green'; // Set color to green for open switches
-        }
-
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+        const color = 'red'; // Set color to red
         // Create style for the feature
         return new ol.style.Style({
             image: new ol.style.Circle({
                 radius: 6,
                 fill: new ol.style.Fill({
-                    color: color // Use the determined color
+                    color: color // Use the color
                 }),
                 stroke: new ol.style.Stroke({
-                    color: color, // Use the determined color
+                    color: color, // Use the color
                     width: 2
                 })
             }),
