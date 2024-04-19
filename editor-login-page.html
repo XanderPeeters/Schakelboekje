@@ -709,9 +709,9 @@
             }),
             text: new ol.style.Text({
                 text: layerName, // Display the layer name as label
-                font: '12px Calibri,sans-serif',
+                font: 'bold 12px Calibri,sans-serif',
                 offsetY: -12,
-                fill: new ol.style.Fill({ color: color }) // Use the same color for the label
+                fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
             })
         });
     };
@@ -923,9 +923,9 @@
                         }),
                         text: new ol.style.Text({
                             text: layerName,
-                            font: '12px Calibri,sans-serif',
+                            font: 'bold 12px Calibri,sans-serif',
                             offsetY: -12,
-                            fill: new ol.style.Fill({ color: color })
+                            fill: new ol.style.Fill({ color: 'black' })
                         })
                     });
                 } else {
