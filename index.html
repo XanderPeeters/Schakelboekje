@@ -131,73 +131,6 @@
             background-color: #0056b3; /* Darker blue on hover */
         }
 
-        /* Modal styles */
-        .modal {
-            display: none; /* Hide the modal by default */
-            position: fixed; /* Position the modal */
-            z-index: 1000; /* Set a high z-index to ensure it's above other elements */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Black background with transparency */
-        }
-
-        /* Modal content */
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto; /* Center modal vertically and horizontally */
-            padding: 20px;
-            border: 1px solid #888;
-            border-radius: 5px;
-            max-width: 600px; /* Set maximum width of the modal */
-        }
-
-        /* Close button */
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        #logButtonContainer {
-            position: absolute;
-            top: 10px; /* Adjust as needed */
-            right: 10px; /* Adjust as needed */
-            z-index: 1000; /* Ensure it's above other elements */
-        }
-
-        #logButton {
-            width: 100px; /* Adjust width as needed */
-            padding: 8px; /* Adjust padding as needed */
-            background-color: #007bff; /* Blue button color */
-            color: white; /* White text color */
-            border: none; /* Remove border */
-            cursor: pointer; /* Add pointer cursor */
-            border-radius: 5px; /* Rounded corners */
-            font-size: 16px; /* Adjust font size as needed */
-        }
-
-        #logButton:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-        }
-
-         #logModal .modal-content input[type="date"] {
-            margin-bottom: 20px; /* Adjust the value as needed */
-         }
-
-         #logModal .modal-content table {
-            width: 100%;
-         }
-
         .control-box {
             margin-bottom: 10px;
         }
@@ -253,8 +186,8 @@
         <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="backgroundCheckbox">Grijze achtergrond:</label>
-        <input id="backgroundCheckbox" type="checkbox"/>
+        <label for="visibleGrey">Grijze achtergrond:</label>
+        <input id="visibleGrey" type="checkbox"/>
     </div>
     <div class="control-box">
         <label for="opacity1">Transparantie schakelaars:</label>
@@ -526,8 +459,6 @@
         }
     }
 
-
-
     // Add a click event listener to the pin element
     pointerElement.addEventListener('click', function(event) {
         // Prevent the singleclick event on the map from firing
@@ -619,6 +550,22 @@
 
     return edgeFeedersSet;
 }
+
+    // Load GeoJSON data for the grey map layer
+    const greyMapSource = new ol.source.TileJSON({
+        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+        tileSize: 512,
+    });
+
+    // Create the grey map layer
+    const greyMapLayer = new ol.layer.Tile({
+        source: greyMapSource,
+        visible: false // Initially set to invisible
+    });
+
+    // Add the grey map layer to the map
+    map.addLayer(greyMapLayer);
+
 
     // Create the first vector layer
     const vectorLayer1 = new ol.layer.Vector({
@@ -721,37 +668,6 @@
         rangeInput.value = String(layer.getOpacity());
     }
 
-    // Function to handle background checkbox changes
-    function handleBackgroundChange() {
-        const backgroundCheckbox = document.getElementById('backgroundCheckbox');
-        const baseLayer = map.getLayers().item(0); // Assuming the base layer is the first layer
-
-        backgroundCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                // If the checkbox is checked, switch to the grey background layer
-                const greyBackgroundLayer = new ol.layer.Tile({
-                    source: new ol.source.TileJSON({
-                        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
-                        tileSize: 512,
-                    })
-                });
-                map.getLayers().setAt(0, greyBackgroundLayer); // Set grey background layer as the first layer
-            } else {
-                // If the checkbox is unchecked, switch back to the default background layer
-                const defaultBackgroundLayer = new ol.layer.Tile({
-                    source: new ol.source.TileJSON({
-                        url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
-                        tileSize: 512,
-                    })
-                });
-                map.getLayers().setAt(0, defaultBackgroundLayer); // Set default background layer as the first layer
-            }
-        });
-    }
-
-    // Call the function to handle background checkbox changes
-    handleBackgroundChange();
-
 
 
     // Function to zoom to a specific location or layer
@@ -832,6 +748,9 @@
 
     // Handle visibility for QGIS layer 2
     handleLayerVisibility(vectorLayer2, 'visible2');
+
+    // Handle visibility for greylayer
+    handleLayerVisibility(greyMapLayer, 'visibleGrey');
 
     // Handle opacity for QGIS layer 1
     handleLayerOpacity(vectorLayer1, 'opacity1');

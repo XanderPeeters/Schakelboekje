@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Status to GeoJSON</title>
+    <title>Convert GeoJSON to Excel/CSV</title>
 </head>
 <body>
     <input type="file" id="geojsonFileInput" accept=".geojson">
-    <button onclick="addStatusToGeoJSON()">Add Status</button>
+    <button onclick="convertToExcel()">Convert to Excel</button>
+    <button onclick="convertToCSV()">Convert to CSV</button>
 
     <script>
-        function addStatusToGeoJSON() {
+        function convertToExcel() {
             const fileInput = document.getElementById('geojsonFileInput');
             const file = fileInput.files[0];
 
@@ -20,23 +21,40 @@
                 reader.onload = function(event) {
                     const geojson = JSON.parse(event.target.result);
 
-                    // Iterate over each feature and add the "status" property with the value based on switch ID
-                    geojson.features.forEach(function(feature) {
-                        const layerName = feature.properties.LAYER;
-                        if (layerName === 'S723' || layerName === 'S861' || layerName === 'S735' || layerName === 'S775') {
-                            feature.properties.status = 'Open';
-                        }
-                    });
+                    // Convert GeoJSON to XLSX format
+                    const workbook = XLSX.utils.book_new();
+                    const worksheet = XLSX.utils.json_to_sheet(geojson.features.map(feature => feature.properties));
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
 
-                    // Convert the modified GeoJSON back to a string
-                    const modifiedGeoJSON = JSON.stringify(geojson, null, 2);
+                    // Save the XLSX file
+                    XLSX.writeFile(workbook, 'geojson_data.xlsx');
+                };
 
-                    // Download the modified GeoJSON as a file
-                    const blob = new Blob([modifiedGeoJSON], { type: 'application/json' });
+                reader.readAsText(file);
+            } else {
+                alert('Please select a GeoJSON file.');
+            }
+        }
+
+        function convertToCSV() {
+            const fileInput = document.getElementById('geojsonFileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const geojson = JSON.parse(event.target.result);
+
+                    // Convert GeoJSON to CSV format
+                    const csv = Papa.unparse(geojson.features.map(feature => feature.properties));
+
+                    // Save the CSV file
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'modified_schakelaars2COPY.geojson'; // Change the download file name here
+                    a.download = 'geojson_data.csv';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -49,5 +67,7 @@
             }
         }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 </body>
 </html>
