@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Status to GeoJSON</title>
+</head>
+<body>
+    <input type="file" id="geojsonFileInput" accept=".geojson">
+    <button onclick="addStatusToGeoJSON()">Add Status</button>
+
+    <script>
+        function addStatusToGeoJSON() {
+            const fileInput = document.getElementById('geojsonFileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(event) {
+                    const geojson = JSON.parse(event.target.result);
+
+                    // Iterate over each feature and add the "status" property with the value "Closed"
+                    geojson.features.forEach(function(feature) {
+                        feature.properties.status = 'Closed';
+                    });
+
+                    // Convert the modified GeoJSON back to a string
+                    const modifiedGeoJSON = JSON.stringify(geojson, null, 2);
+
+                    // Download the modified GeoJSON as a file
+                    const blob = new Blob([modifiedGeoJSON], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'modified_schakelaars2COPY.geojson'; // Change the download file name here
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+
+                reader.readAsText(file);
+            } else {
+                alert('Please select a GeoJSON file.');
+            }
+        }
+    </script>
+</body>
+</html>
