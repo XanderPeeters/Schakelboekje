@@ -691,12 +691,13 @@
         format: new ol.format.GeoJSON()
     });
 
-    // Style for the first layer (dots) with red/green color and label
-    const geojsonStyle1 = function(feature) {
-        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+    // Style function for the first layer (dots) with red/green color and label
+    const geojsonStyle1 = function(feature, resolution) {
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
         const color = 'red'; // Set color to red
-        // Create style for the feature
-        return new ol.style.Style({
+
+        // Create base style without text
+        const baseStyle = new ol.style.Style({
             image: new ol.style.Circle({
                 radius: 6,
                 fill: new ol.style.Fill({
@@ -706,14 +707,29 @@
                     color: color, // Use the color
                     width: 2
                 })
-            }),
-            text: new ol.style.Text({
-                text: layerName, // Display the layer name as label
-                font: 'bold 12px Calibri,sans-serif',
-                offsetY: -12,
-                fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
             })
         });
+
+        // Function to create style with text
+        function createStyleWithText() {
+            return new ol.style.Style({
+                image: baseStyle.getImage(),
+                text: new ol.style.Text({
+                    text: layerName, // Display the layer name as label
+                    font: 'bold 12px Calibri,sans-serif',
+                    offsetY: -12,
+                    fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
+                })
+            });
+        }
+
+        // Check if zoom level is greater than or equal to the desired level to show text
+        if (map.getView().getZoom() >= 15.5) { // Adjust 15.5 to your desired zoom level
+            return createStyleWithText(); // Apply style with text
+        }
+
+        // Apply base style without text
+        return baseStyle;
     };
 
    document.addEventListener('DOMContentLoaded', function () {
@@ -908,14 +924,14 @@
             const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
 
             // Modified style function to use assigned colors for feeders
-            const geojsonStyle2 = function(feature) {
+            const geojsonStyle2 = function(feature, resolution) {
                 const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
 
                 // Get color for the current feeder from the map
                 const color = feederColors.get(layerName);
 
-                // If color is found, create style for the feature
-                if (color) {
+                // If color is found and zoom level is greater than or equal to the desired level, create style for the feature
+                if (color && map.getView().getZoom() >= 15.5) { // Adjust 10 to your desired zoom level
                     return new ol.style.Style({
                         stroke: new ol.style.Stroke({
                             color: color,
@@ -929,10 +945,13 @@
                         })
                     });
                 } else {
-                    // If color is not found, handle as needed
-                    console.error('Color not found for layer:', layerName);
-                    // You can choose to assign a default color or handle the situation differently
-                    return null;
+                    // If color is not found or zoom level is below the desired level, do not show the text
+                    return new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: color,
+                            width: 3
+                        })
+                    });
                 }
             };
 
@@ -952,6 +971,28 @@
             console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
         }
     });
+
+    // Function to update vector layer style based on current zoom level
+    function updateVectorLayerStyle() {
+        const currentZoom = map.getView().getZoom();
+        const vectorLayer2Style = vectorLayer2.getStyle();
+        const zoomThreshold = 10; // Adjust this value to your desired zoom level threshold
+
+        // Check if the current zoom level is higher than the threshold to show text labels
+        if (currentZoom >= zoomThreshold) {
+            vectorLayer2.setStyle(geojsonStyle2); // Apply style with text labels
+        } else {
+            vectorLayer2.setStyle(function() { return null; }); // Remove text labels
+        }
+    }
+
+    // Add event listener for moveend event to detect zoom level changes
+    map.on('moveend', function() {
+        updateVectorLayerStyle(); // Update vector layer style when zoom level changes
+    });
+
+    // Initial update of vector layer style based on initial zoom level
+    updateVectorLayerStyle();
 
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
