@@ -560,7 +560,7 @@
 
     // Load GeoJSON data for the first layer
     const geojsonSource1 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2COPY.geojson',
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/closed_switches.geojson',
         format: new ol.format.GeoJSON()
     });
 
@@ -568,8 +568,10 @@
     const geojsonStyle1 = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property
         const switchStatus = feature.get('status'); // Assuming 'status' is the property indicating switch status
-        console.log('Layer Name:', layerName);
-        console.log('Switch Status:', switchStatus);
+        if (layerName === 'S735') {
+            // If the LAYER property matches 'S734', log the status property to the console
+            console.log('Status for feeder S735:', switchStatus);
+        }
         // Determine color based on switch status
         let color;
         if (switchStatus === 'Closed') {
@@ -634,6 +636,32 @@
 
     // Add the first vector layer to the mapp
     map.addLayer(vectorLayer1);
+
+    // Assuming 'vectorLayer1' is the layer containing your switch features
+    vectorLayer1.getSource().on('change', function(event) {
+        if (vectorLayer1.getSource().getState() === 'ready') {
+            vectorLayer1.getSource().forEachFeature(function(feature) {
+                feature.on('click', function(event) {
+                    // Toggle between GeoJSON files
+                    const currentStatus = feature.get('status');
+                    let newGeoJSONFile;
+
+                    if (currentStatus === 'Open') {
+                        newGeoJSONFile = 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/open_switches.geojson';
+                    } else {
+                        newGeoJSONFile = 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/closed_switches.geojson';
+                    }
+
+                    // Update GeoJSON source URL
+                    geojsonSource1.setUrl(newGeoJSONFile);
+
+                    // Refresh the layer
+                    vectorLayer1.getSource().refresh();
+                });
+            });
+        }
+    });
+
 
     // Load GeoJSON data for the second layer
     const geojsonSource2 = new ol.source.Vector({

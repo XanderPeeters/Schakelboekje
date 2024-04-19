@@ -20,9 +20,12 @@
                 reader.onload = function(event) {
                     const geojson = JSON.parse(event.target.result);
 
-                    // Iterate over each feature and add the "status" property with the value "Closed"
+                    // Iterate over each feature and add the "status" property with the value based on switch ID
                     geojson.features.forEach(function(feature) {
-                        feature.properties.status = 'Closed';
+                        const layerName = feature.properties.LAYER;
+                        if (layerName === 'S723' || layerName === 'S861' || layerName === 'S735' || layerName === 'S775') {
+                            feature.properties.status = 'Open';
+                        }
                     });
 
                     // Convert the modified GeoJSON back to a string
