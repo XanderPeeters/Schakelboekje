@@ -516,7 +516,7 @@
                 })
             }),
             text: new ol.style.Text({
-                text: layerName, // Display the layer name as label
+                text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 12
                 font: 'bold 12px Calibri,sans-serif',
                 offsetY: -12,
                 fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
@@ -619,7 +619,7 @@
                             width: 3
                         }),
                         text: new ol.style.Text({
-                            text: layerName,
+                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 12
                             font: 'bold 12px Calibri,sans-serif',
                             offsetY: -12,
                             fill: new ol.style.Fill({ color: 'black' })
