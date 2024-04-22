@@ -160,6 +160,25 @@
             background-color: #0056b3; /* Darker blue on hover */
         }
 
+        .export-button {
+            padding: 5px; /* Adjust padding */
+            font-size: 12px; /* Adjust font size */
+            height: 40px; /* Set the height to match the other buttons */
+            width: 100px; /* Set the width */
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+            margin-left: 10px; /* Adjust margin */
+            border-radius: 5px; /* Add border radius */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow */
+        }
+
+        .export-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+
     </style>
 </head>
 <body>
@@ -390,6 +409,8 @@
                     return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p><p>Feeders to turn of: </p>`;
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popup2Element.innerHTML = popupContent;
+                // Add the export button separately outside of the mapping function
+                popup2Element.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
 
             } else {
                 // If no intersecting features, display a message
@@ -432,7 +453,7 @@
                 const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
                 const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
 
-                const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p>`;
+                const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p> <button id="exportButton" class="export-button">Export to Word</button>`;
                 popup2Element.innerHTML = content;
             } else {
                 const lon = transfcoordinates[0];
@@ -669,6 +690,39 @@
         });
         rangeInput.value = String(layer.getOpacity());
     }
+
+    const popup2Element = document.getElementById('popup2');
+    popup2Element.addEventListener('click', function(event) {
+        if (event.target.id === 'exportButton') {
+             const content = popup2Element.innerHTML;
+            exportToWord(content);
+        }
+    });
+
+
+    function exportToWord(content) {
+
+        const contentWithoutButton = content.replace('<button id="exportButton" class="export-button">Export to Word</button>', '');
+
+        // Create a new Blob object containing the content
+        const blob = new Blob([`<html><body>${contentWithoutButton}</body></html>`], { type: 'application/msword' });
+
+        // Create a temporary anchor element
+        const anchor = document.createElement('a');
+        anchor.download = 'location_info.doc';
+
+        // Create a URL for the Blob object
+        anchor.href = URL.createObjectURL(blob);
+
+        // Append the anchor to the body and programmatically click it to trigger the download
+        document.body.appendChild(anchor);
+        anchor.click();
+
+        // Remove the anchor element after the download
+        document.body.removeChild(anchor);
+    }
+
+
 
 
 
