@@ -169,7 +169,7 @@
             color: white; /* White text color */
             border: none; /* Remove border */
             cursor: pointer; /* Add pointer cursor */
-            margin-left: 10px; /* Adjust margin */
+            margin-left: 0px; /* Adjust margin */
             border-radius: 5px; /* Add border radius */
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow */
         }
@@ -242,45 +242,7 @@
     let map;
     let draw;
 
-    function openEditorLoginPage() {
-        window.location.href = "login.html"; // Redirect to the editor login page
-    }
-
-    // Load JSON file from server
-    async function loadJSONFile() {
-        try {
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('Error loading JSON file:', error);
-            throw error;
-        }
-    }
-
-    // Function to find the S-value corresponding to a given V-value
-    async function findSValue(vValue) {
-        try {
-            // Load JSON file from server
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            const jsonData = await response.json();
-
-            // Find the corresponding S-value for the given V-value
-            const sValueRow = jsonData.find(row => row[0] === vValue);
-
-            // Return the S-value if found
-            return sValueRow ? sValueRow[1] : 'Not found';
-        } catch (error) {
-            console.error('Error reading JSON file:', error);
-            throw error;
-        }
-    }
-
+    //SETTING UP THE MAP
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
     const extentSize = 25000; // Size of the extent in meters (10 km = 10000 meters)
     const extent = ol.extent.buffer(center.concat(center), extentSize);
@@ -311,6 +273,141 @@
         view: view // Use the view with the custom extent
     });
 
+
+
+
+    //DEFINING LAYER1: Schakelaars, bovengronds
+    // Load GeoJSON data for the first layer
+    const geojsonSource1 = new ol.source.Vector({
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
+        format: new ol.format.GeoJSON()
+    });
+
+    // Style for the first layer (dots) with red/green color and label
+    const geojsonStyle1 = function(feature) {
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+        const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
+        const color = 'red'; // Set color to red
+        // Create style for the feature
+        return new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: color // Use the color
+                }),
+                stroke: new ol.style.Stroke({
+                    color: color, // Use the color
+                    width: 2
+                })
+            }),
+            text: new ol.style.Text({
+                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
+                font: 'bold 12px Calibri,sans-serif',
+                offsetY: -12,
+                fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
+            })
+        });
+    };
+
+    // Create the first vector layer
+    const vectorLayer1 = new ol.layer.Vector({
+        source: geojsonSource1,
+        style: geojsonStyle1
+    });
+
+    // Add the first vector layer to the mapp
+    map.addLayer(vectorLayer1);
+
+
+    //DEFINING LAYER2: Feeders
+    // Load GeoJSON data for the second layer
+    const geojsonSource2 = new ol.source.Vector({
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson',
+        format: new ol.format.GeoJSON()
+    });
+
+
+    // Create the second vector layer without style
+    const vectorLayer2 = new ol.layer.Vector({
+        source: geojsonSource2
+    });
+
+    // Add the second vector layer to the map
+    map.addLayer(vectorLayer2);
+
+    // Fetch JSON data from the server
+    fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Define a map to store colors for feeders
+            const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
+
+            // Modified style function to use assigned colors for feeders
+            const geojsonStyle2 = function(feature) {
+                const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
+
+                // Get color for the current feeder from the map
+                const color = feederColors.get(layerName);
+
+                // If color is found, create style for the feature
+                if (color) {
+                    return new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: color,
+                            width: 3
+                        }),
+                        text: new ol.style.Text({
+                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 15
+                            font: 'bold 12px Calibri,sans-serif',
+                            offsetY: -12,
+                            fill: new ol.style.Fill({ color: 'black' })
+                        })
+                    });
+                } else {
+                    // If color is not found, handle as needed
+                    console.error('Color not found for layer:', layerName);
+                    // You can choose to assign a default color or handle the situation differently
+                    return null;
+                }
+            };
+
+            // Set style function for the vector layer
+            vectorLayer2.setStyle(geojsonStyle2);
+        })
+        .catch(error => {
+            console.error('Error reading JSON file:', error);
+            // Handle error here
+        });
+
+
+
+
+    //DEFINING GREY LAYER
+    // Load GeoJSON data for the grey map layer
+    const greyMapSource = new ol.source.TileJSON({
+        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+        tileSize: 512,
+    });
+
+    // Create the grey map layer
+    const greyMapLayer = new ol.layer.Tile({
+        source: greyMapSource,
+        visible: false // Initially set to invisible
+    });
+
+    // Add the grey map layer to the map
+    map.addLayer(greyMapLayer);
+
+
+
+    //ADDING FUNCTIONALITIES
+
+    //Pointer
     const pointerElement = document.createElement('i');
     pointerElement.className = 'pointer fa-solid fa-location-dot';
     const pointerOverlay = new ol.Overlay({
@@ -320,6 +417,8 @@
     });
     map.addOverlay(pointerOverlay);
 
+
+    //Drawing mode function
     function toggleDrawing() {
         if (drawingModeActive) {
             // Clear previously drawn features if exiting drawing mode
@@ -422,6 +521,8 @@
         });
     }
 
+
+    //Functionality on single map click
     map.on('click', async function(event) {
     if (drawingModeActive) {
         //No functionality yet
@@ -466,7 +567,7 @@
         }
     pointerOverlay.setPosition(coordinates);
     }
-});
+    });
 
 
     // Function to handle the pin click event
@@ -494,6 +595,8 @@
         }
     });
 
+
+    //Right mouse click functionality
     map.getViewport().addEventListener('contextmenu', function(event) {
         if (drawingModeActive) {
             // Finish drawing on right-click
@@ -510,42 +613,6 @@
         }
     });
     map.addLayer(drawnFeaturesLayer);
-
-    // Object to store the colors for each layer
-    const layerColors = {};
-
-    // Load GeoJSON data for the first layer
-    const geojsonSource1 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
-        format: new ol.format.GeoJSON()
-    });
-
-    // Style for the first layer (dots) with red/green color and label
-    const geojsonStyle1 = function(feature) {
-        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
-        const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
-        const color = 'red'; // Set color to red
-        // Create style for the feature
-        return new ol.style.Style({
-            image: new ol.style.Circle({
-                radius: 6,
-                fill: new ol.style.Fill({
-                    color: color // Use the color
-                }),
-                stroke: new ol.style.Stroke({
-                    color: color, // Use the color
-                    width: 2
-                })
-            }),
-            text: new ol.style.Text({
-                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
-                font: 'bold 12px Calibri,sans-serif',
-                offsetY: -12,
-                fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
-            })
-        });
-    };
-
 
     function findEdgeFeeders(mainFeederName) {
     const edgeFeedersSet = new Set();
@@ -571,108 +638,47 @@
     });
 
     return edgeFeedersSet;
-}
+    }
 
-    // Load GeoJSON data for the grey map layer
-    const greyMapSource = new ol.source.TileJSON({
-        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
-        tileSize: 512,
-    });
+    function openEditorLoginPage() {
+        window.location.href = "login.html"; // Redirect to the editor login page
+    }
 
-    // Create the grey map layer
-    const greyMapLayer = new ol.layer.Tile({
-        source: greyMapSource,
-        visible: false // Initially set to invisible
-    });
-
-    // Add the grey map layer to the map
-    map.addLayer(greyMapLayer);
-
-
-    // Create the first vector layer
-    const vectorLayer1 = new ol.layer.Vector({
-        source: geojsonSource1,
-        style: geojsonStyle1
-    });
-
-    // Add the first vector layer to the mapp
-    map.addLayer(vectorLayer1);
-
-
-    // Load GeoJSON data for the second layer
-    const geojsonSource2 = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson',
-        format: new ol.format.GeoJSON()
-    });
-
-
-    // Create the second vector layer without style
-    const vectorLayer2 = new ol.layer.Vector({
-        source: geojsonSource2
-    });
-
-    // Add the second vector layer to the map
-    map.addLayer(vectorLayer2);
-
-    // Fetch JSON data from the server
-    fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
-        .then(response => {
+    // Load JSON file from server
+    async function loadJSONFile() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
             if (!response.ok) {
                 throw new Error('Failed to fetch JSON file');
             }
-            return response.json();
-        })
-        .then(data => {
-            // Define a map to store colors for feeders
-            const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
-
-            // Modified style function to use assigned colors for feeders
-            const geojsonStyle2 = function(feature) {
-                const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
-
-                // Get color for the current feeder from the map
-                const color = feederColors.get(layerName);
-
-                // If color is found, create style for the feature
-                if (color) {
-                    return new ol.style.Style({
-                        stroke: new ol.style.Stroke({
-                            color: color,
-                            width: 3
-                        }),
-                        text: new ol.style.Text({
-                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 15
-                            font: 'bold 12px Calibri,sans-serif',
-                            offsetY: -12,
-                            fill: new ol.style.Fill({ color: 'black' })
-                        })
-                    });
-                } else {
-                    // If color is not found, handle as needed
-                    console.error('Color not found for layer:', layerName);
-                    // You can choose to assign a default color or handle the situation differently
-                    return null;
-                }
-            };
-
-            // Set style function for the vector layer
-            vectorLayer2.setStyle(geojsonStyle2);
-        })
-        .catch(error => {
-            console.error('Error reading JSON file:', error);
-            // Handle error here
-        });
-
-
-
-    // Troubleshooting: Add an event listener to check for errorss
-    vectorLayer2.getSource().on('change', function(evt) {
-        if (vectorLayer2.getSource().getState() === 'ready') {
-            console.log('Data loaded successfully.');
-        } else if (vectorLayer2.getSource().getState() === 'error') {
-            console.error('Error loading data:', vectorLayer2.getSource().getLoadingError());
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading JSON file:', error);
+            throw error;
         }
-    });
+    }
+
+    // Function to find the S-value corresponding to a given V-value
+    async function findSValue(vValue) {
+        try {
+            // Load JSON file from server
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            const jsonData = await response.json();
+
+            // Find the corresponding S-value for the given V-value
+            const sValueRow = jsonData.find(row => row[0] === vValue);
+
+            // Return the S-value if found
+            return sValueRow ? sValueRow[1] : 'Not found';
+        } catch (error) {
+            console.error('Error reading JSON file:', error);
+            throw error;
+        }
+    }
+
 
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
@@ -721,10 +727,6 @@
         // Remove the anchor element after the download
         document.body.removeChild(anchor);
     }
-
-
-
-
 
     // Function to zoom to a specific location or layer
     function zoomToLocationOrLayer() {
@@ -795,6 +797,9 @@
     function reloadPage() {
         location.reload();
     }
+
+
+
 
     // Handle visibility for OSM layer
     handleLayerVisibility(map.getLayers().item(0), 'visible0');
