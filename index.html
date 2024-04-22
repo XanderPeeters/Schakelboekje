@@ -502,6 +502,7 @@
     // Style for the first layer (dots) with red/green color and label
     const geojsonStyle1 = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+        const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const color = 'red'; // Set color to red
         // Create style for the feature
         return new ol.style.Style({
@@ -516,7 +517,7 @@
                 })
             }),
             text: new ol.style.Text({
-                text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 12
+                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
                 font: 'bold 12px Calibri,sans-serif',
                 offsetY: -12,
                 fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
@@ -619,7 +620,7 @@
                             width: 3
                         }),
                         text: new ol.style.Text({
-                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 12
+                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 15
                             font: 'bold 12px Calibri,sans-serif',
                             offsetY: -12,
                             fill: new ol.style.Fill({ color: 'black' })
