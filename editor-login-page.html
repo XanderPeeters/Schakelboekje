@@ -596,7 +596,19 @@
                     const feederName = data.layerName;
                     const edgeFeeders = data.edgeFeeders;
                     const switches = data.Switches
-                    return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p><p>Feeders to turn of: </p>`;
+                    // Populate the tsFeederMap object with main and edge feeder names
+                     const tsFeederMap = populateTSFeederMap([feederName, ...edgeFeeders]);
+
+                    // Generate the "Feeders to turn off" section content
+                    let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                    for (const tsNumber in tsFeederMap) {
+                        const feederList = tsFeederMap[tsNumber].join(', ');
+                        // Include a message for "N/A" TS numbers
+                        const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                        feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                    }
+
+                    return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p> ${feedersToTurnOffContent}`;
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popup2Element.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
@@ -642,8 +654,26 @@
                 const sValue = await findSValue(vValue);
                 const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
                 const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
+                // Populate the tsFeederMap object with main and edge feeder names
+                 const tsFeederMap = populateTSFeederMap([closestFeatureName, ...edgeFeeders]);
 
-                 const content = `<h4 style="margin-top: 0;">Location information:</h4> <p>Main feeder: ${closestFeatureName}</p> <p> Edge feeders: ${edgeFeeders.join(', ')}</p> <p>Switches: ${sValue}</p> <p> Feeders to turn off: </p> <button id="exportButton" class="export-button">Export to Word</button>`;
+                // Generate the "Feeders to turn off" section content
+                let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                for (const tsNumber in tsFeederMap) {
+                    const feederList = tsFeederMap[tsNumber].join(', ');
+                    // Include a message for "N/A" TS numbers
+                    const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                    feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                }
+
+
+                 // Add the generated content to the main content string
+                const content = `<h4 style="margin-top: 0;">Location information:</h4>
+                                 <p>Main feeder: ${closestFeatureName}</p>
+                                 <p>Edge feeders: ${edgeFeeders}</p>
+                                 <p>Switches: ${sValue}</p>
+                                 ${feedersToTurnOffContent}
+                                 <button id="exportButton" class="export-button">Export to Word</button>`;
                 popup2Element.innerHTML = content;
             } else {
                 const lon = transfcoordinates[0];
@@ -667,6 +697,41 @@
         } else {
             popup2Element.style.display = 'none';
         }
+    }
+
+    // Define a function to find the TS number for a given feeder name
+    function findTSNumber(feederName) {
+        // Loop through each feature in the GeoJSON data
+        for (const feature of geojsonSource2.getFeatures()) {
+            // Check if the feature's 'LAYER' name matches the given feederName
+            if (feature.get('LAYER') === feederName) {
+                // Return the TS number of the matched feature
+                const tsNumber = feature.get('TS');
+                return tsNumber !== null ? tsNumber : 'N/A'; // Return "N/A" if TS number is null
+            }
+        }
+        // Return "N/A" if no matching feeder name is found
+        return 'N/A';
+    }
+
+
+    // Create an object to store TS numbers and associated feeder names
+    const tsFeederMap = {};
+
+    // Function to populate the tsFeederMap object
+    function populateTSFeederMap(feederNames) {
+        const tsFeederMap = {}; // Clear tsFeederMap object
+        feederNames.forEach(feederName => {
+            const tsNumber = findTSNumber(feederName);
+            if (tsNumber) {
+                if (!tsFeederMap[tsNumber]) {
+                    tsFeederMap[tsNumber] = [feederName];
+                } else {
+                    tsFeederMap[tsNumber].push(feederName);
+                }
+            }
+        });
+        return tsFeederMap; // Return the populated tsFeederMap object
     }
 
 
