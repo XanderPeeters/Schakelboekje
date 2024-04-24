@@ -218,23 +218,15 @@
 
     // Function to find the switches corresponding to a given main feeder
     async function find_switches(Main_feeder) {
-        try {
-            // Load JSON file from server
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            const jsonData = await response.json();
+        // Load JSON file from server
+        const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+        const jsonData = await response.json();
 
-            // Find the corresponding switches for the given main feeder
-            const sValueRow = jsonData.find(row => row[0] === Main_feeder);
+        // Find the corresponding switches for the given main feeder
+        const sValueRow = jsonData.find(row => row[0] === Main_feeder);
 
-            // Return the switches if found
-            return sValueRow ? sValueRow[1] : 'Not found';
-        } catch (error) {
-            console.error('Error reading JSON file:', error);
-            throw error;
-        }
+        // Return the switches if found
+        return sValueRow ? sValueRow[1] : 'Not found';
     }
 
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
@@ -300,7 +292,6 @@
         draw.on('drawend', async function(event) {
             // Clear previous polygon
             drawnFeaturesSource.clear();
-
 
             // Lock the current polygon
             const polygonFeature = event.feature;
