@@ -281,7 +281,8 @@
         drawingModeActive = !drawingModeActive;
     }
 
-    function initDrawingInteraction() {      
+    function initDrawingInteraction() {
+        
         draw = new ol.interaction.Draw({
             source: drawnFeaturesSource,
             type: 'Polygon',
@@ -424,7 +425,12 @@
                                  ${feedersToTurnOffContent}
                                  <button id="exportButton" class="export-button">Export to Word</button>`;
                 popupElement.innerHTML = content;
-            } 
+            } else {
+                const lon = transfcoordinates[0];
+                const lat = transfcoordinates[1];
+                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+                popupElement2.innerHTML = content;
+            }
         } else {
             popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
         }
@@ -433,7 +439,7 @@
 });
 
     // Function to handle the pin click event
-    function popupOnPinClick() {
+    function handlePinClick() {
         pinClicked = true;
         const popupElement = document.getElementById('popup');
         if (pinClicked) {
@@ -484,7 +490,7 @@
     pointerElement.addEventListener('click', function(event) {
         // Prevent the singleclick event on the map from firing
         event.stopPropagation();
-        popupOnPinClick();
+        handlePinClick();
     });
 
     map.on('dblclick', function(event) {
@@ -705,8 +711,6 @@
         document.body.removeChild(anchor);
     }
 
-    
-
     //function to zoom to a specific location
     function zoomToLocationOrLayer(feature) {
         const extent = feature.getGeometry().getExtent();
@@ -721,7 +725,7 @@
             return;
         }
         let found = false;
-        const layers = [vectorLayer2, vectorLayer1];
+        const layers = [feeder_layer, switches_layer];
 
         layers.forEach(layer => {
             layer.getSource().forEachFeature(feature => {
