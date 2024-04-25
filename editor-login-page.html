@@ -436,39 +436,17 @@
         window.location.href = "index.html"; // Redirect to the user page again
     }
 
-    // Load JSON file from server
-    async function loadJSONFile() {
-        try {
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('Error loading JSON file:', error);
-            throw error;
-        }
-    }
+    // Function to find the switches corresponding to a given main feeder
+    async function find_switches(Main_feeder) {
+        // Load JSON file from server
+        const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+        const jsonData = await response.json();
 
-    // Function to find the S-value corresponding to a given V-value
-    async function find_switches(main_feeder) {
-        try {
-            // Load JSON file from server
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            const jsonData = await response.json();
+        // Find the corresponding switches for the given main feeder
+        const sValueRow = jsonData.find(row => row[0] === Main_feeder);
 
-            // Find the corresponding S-value for the given V-value
-            const switchesRow = jsonData.find(row => row[0] === main_feeder);
-
-            // Return the S-value if found
-            return switchesRow ? switchesRow[1] : 'Not found';
-        } catch (error) {
-            console.error('Error reading JSON file:', error);
-            throw error;
-        }
+        // Return the switches if found
+        return sValueRow ? sValueRow[1] : 'Not found';
     }
 
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
@@ -511,14 +489,11 @@
     map.addOverlay(pointerOverlay);
 
     function toggleDrawing() {
-        if (drawingModeActive) {
-            // Clear previously drawn features if exiting drawing mode
-            drawnFeaturesSource.clear();
+        drawnFeaturesSource.clear(); // Clear previously drawn features if exiting drawing mode
+        if (drawingModeActive) {          
             map.removeInteraction(draw);
             document.getElementById('draw_Button').style.backgroundColor = '';
         } else {
-            // Clear previously drawn features if starting a new drawing
-            drawnFeaturesSource.clear();
             document.getElementById('draw_Button').style.backgroundColor = 'green';
             initDrawingInteraction();
 
@@ -527,11 +502,6 @@
     }
 
     function initDrawingInteraction() {
-        if (!drawnFeaturesSource || !feeder_layer || !map) {
-            console.error('Missing required sources or map.');
-            return;
-        }
-
         draw = new ol.interaction.Draw({
             source: drawnFeaturesSource,
             type: 'Polygon',
@@ -541,7 +511,6 @@
         draw.on('drawend', async function(event) {
             // Clear previous polygon
             drawnFeaturesSource.clear();
-
 
             // Lock the current polygon
             const polygonFeature = event.feature;
@@ -666,7 +635,6 @@
                     feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
                 }
 
-
                  // Add the generated content to the main content string
                 const content = `<h4 style="margin-top: 0;">Location information:</h4>
                                  <p>Main feeder: ${closestFeatureName}</p>
@@ -675,12 +643,7 @@
                                  ${feedersToTurnOffContent}
                                  <button id="exportButton" class="export-button">Export to Word</button>`;
                 popupElement.innerHTML = content;
-            } else {
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
-                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-                popupElement2.innerHTML = content;
-            }
+            } 
         } else {
             popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
         }
@@ -734,8 +697,6 @@
         return tsFeederMap; // Return the populated tsFeederMap object
     }
 
-
-
     // Add a click event listener to the pin element
     pointerElement.addEventListener('click', function(event) {
         // Prevent the singleclick event on the map from firing
@@ -770,13 +731,13 @@
     // Object to store the colors for each layer
     const layerColors = {};
 
-    // Load GeoJSON data for the first layer
+    // Load GeoJSON data for the switches layer
     const Switches_source = new ol.source.Vector({
         url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
         format: new ol.format.GeoJSON()
     });
 
-    // Style for the first layer (dots) with red/green color and label
+    // Style for the switches layer with red/green color and label
     const switches_style = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
@@ -1001,9 +962,6 @@
     // Fetch JSON data from the server
     fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
             return response.json();
         })
         .then(data => {
@@ -1039,22 +997,9 @@
                 }
             };
 
-            // Set style function for the vector layer
+            // Set style function for the feeder layer
             feeder_layer.setStyle(feeder_styling);
-        })
-        .catch(error => {
-            console.error('Error reading JSON file:', error);
-            // Handle error here
         });
-
-    // Troubleshooting: Add an event listener to check for errors
-    feeder_layer.getSource().on('change', function(evt) {
-        if (feeder_layer.getSource().getState() === 'ready') {
-            console.log('Data loaded successfully.');
-        } else if (feeder_layer.getSource().getState() === 'error') {
-            console.error('Error loading data:', feeder_layer.getSource().getLoadingError());
-        }
-    });
 
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
@@ -1162,12 +1107,9 @@
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Address not found!');
+                    document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
                 }
             })
-            .catch(function(error) {
-                console.error('Error geocoding address:', error);
-            });
     }
 
     function reloadPage() {

@@ -281,8 +281,7 @@
         drawingModeActive = !drawingModeActive;
     }
 
-    function initDrawingInteraction() {
-        
+    function initDrawingInteraction() {      
         draw = new ol.interaction.Draw({
             source: drawnFeaturesSource,
             type: 'Polygon',
@@ -425,12 +424,7 @@
                                  ${feedersToTurnOffContent}
                                  <button id="exportButton" class="export-button">Export to Word</button>`;
                 popupElement.innerHTML = content;
-            } else {
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
-                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-                popupElement2.innerHTML = content;
-            }
+            } 
         } else {
             popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
         }
