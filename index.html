@@ -191,7 +191,7 @@
         <input id="searchInput" type="text"/>
     </div>
     <div class="control-box">
-        <button onclick="zoomToLocationOrLayer()">Zoeken</button>
+        <button onclick="searchLayerFeatureOrAddress()">Zoeken</button>
         <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
     </div>
     <div class="control-box">
@@ -369,7 +369,7 @@
             }));
 
             // Display popup with information about intersecting features
-            handlePinClick();
+            popupOnPinClick();
             const popup2Element = document.querySelector('.popup2');
             if (intersectingFeatures.size > 0) {
                 const popupContent = Array.from(intersectingFeatures).map(function(data) {
@@ -408,7 +408,7 @@
     if (drawingModeActive) {
         //No functionality yet
     } else {
-        handlePinClick();
+        popupOnPinClick();
         const popup2Element = document.querySelector('.popup2');
         const coordinates = event.coordinate;
         const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
@@ -469,7 +469,7 @@
 });
 
     // Function to handle the pin click event
-    function handlePinClick() {
+    function popupOnPinClick() {
         pinClicked = true;
         const popup2Element = document.getElementById('popup2');
         if (pinClicked) {
@@ -520,7 +520,7 @@
     pointerElement.addEventListener('click', function(event) {
         // Prevent the singleclick event on the map from firing
         event.stopPropagation();
-        handlePinClick();
+        popupOnPinClick();
     });
 
     map.on('dblclick', function(event) {
@@ -748,46 +748,41 @@
         document.body.removeChild(anchor);
     }
 
+    
+
+    //function to zoom to a specific location
+    function zoomToLocationOrLayer(feature) {
+        const extent = feature.getGeometry().getExtent();
+        map.getView().fit(extent, {duration: 1000});
+    }
+
     // Function to zoom to a specific location or layer
-    function zoomToLocationOrLayer() {
+    function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
-        if (searchText) {
-            let foundLayer2 = false;
-            let foundLayer1 = false;
-            // Check if the search text matches a feature in Layer 2
-            vectorLayer2.getSource().forEachFeature(function(feature) {
+        if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
+        }
+        let found = false;
+        const layers = [vectorLayer2, vectorLayer1];
+
+        layers.forEach(layer => {
+            layer.getSource().forEachFeature(feature => {
                 if (feature.get('LAYER') === searchText) {
-                    const extent = feature.getGeometry().getExtent();
-                    map.getView().fit(extent, { duration: 1000 });
-                    foundLayer2 = true;
+                    zoomToLocationOrLayer
+                    found = true;
                     return;
                 }
             });
-            // If not found in Layer 2, check Layer 1
-            if (!foundLayer2) {
-                vectorLayer1.getSource().forEachFeature(function(feature) {
-                    if (feature.get('LAYER') === searchText) {
-                        const extent = feature.getGeometry().getExtent();
-                        map.getView().fit(extent, { duration: 1000 });
-                        foundLayer1 = true;
-                        return;
-                    }
-                });
-            }
-            // If not found in Layer 1, try to geocode the search text as an address
-            if (!foundLayer2 && !foundLayer1) {
-                geocodeAddress(searchText);
-            }
-            // Display error message if nothing is found
-            if (!foundLayer2 && !foundLayer1 && !searchText) {
-                document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
-            } else {
-                document.getElementById('errorMessage').textContent = ''; // Clear error message
-            }
+        });
+
+        if (!found) {
+            geocodeAddress(searchText);
         } else {
-            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
         }
     }
+           
 
 
     // Function to geocode an address and zoom to its location
