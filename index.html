@@ -70,7 +70,7 @@
             font-size: 24px;
             color: blue;
             z-index: 1000;
-         }
+        }
 
         .legend {
             position: absolute;
@@ -85,7 +85,7 @@
             font-size: 14px;
         }
 
-        .popup2 {
+        .popup {
             position: absolute;
             background-color: rgba(255, 255, 255, 0.9);
             padding: 5px 10px;
@@ -163,28 +163,28 @@
         </div>
     </div>
     <div class="control-box">
-        <label for="visible0">Kaart:</label>
-        <input id="visible0" class="visible" type="checkbox" checked/>
+        <label for="visible_map">Kaart:</label>
+        <input id="visible_map" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible1">Sectie schakelaars:</label>
-        <input id="visible1" class="visible" type="checkbox" checked/>
+        <label for="visible_switches">Sectie schakelaars:</label>
+        <input id="visible_switches" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible2">Voedingen:</label>
-        <input id="visible2" class="visible" type="checkbox" checked/>
+        <label for="visible_feeders">Voedingen:</label>
+        <input id="visible_feeders" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visibleGrey">Grijze achtergrond:</label>
-        <input id="visibleGrey" type="checkbox"/>
+        <label for="visible_Grey">Grijze achtergrond:</label>
+        <input id="visible_Grey" type="checkbox"/>
     </div>
     <div class="control-box">
-        <label for="opacity1">Transparantie schakelaars:</label>
-        <input id="opacity1" class="opacity" type="range" min="0" max="1" step="0.01"/>
+        <label for="opacity_switches">Transparantie schakelaars:</label>
+        <input id="opacity_switches" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </div>
     <div class="control-box">
-        <label for="opacity2">Transparantie voedingen:</label>
-        <input id="opacity2" class="opacity" type="range" min="0" max="1" step="0.01"/>
+        <label for="opacity_feeders">Transparantie voedingen:</label>
+        <input id="opacity_feeders" class="opacity" type="range" min="0" max="1" step="0.01"/>
     </div>
     <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
@@ -195,11 +195,11 @@
         <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
     </div>
     <div class="control-box">
-        <button id="tekenButton" onclick="toggleDrawing()">Teken</button>
+        <button id="draw_Button" onclick="toggleDrawing()">Teken</button>
     </div>
 </div>
 <div id="map"></div>
-<div id="popup2" class="popup2" style="display: none;"></div>
+<div id="popup" class="popup" style="display: none;"></div>
 <div class="legend">
     <label>Legende:</label>
     <div>
@@ -216,39 +216,17 @@
         window.location.href = "login.html"; // Redirect to the user page again
     }
 
-    // Load JSON file from server
-    async function loadJSONFile() {
-        try {
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('Error loading JSON file:', error);
-            throw error;
-        }
-    }
+    // Function to find the switches corresponding to a given main feeder
+    async function find_switches(Main_feeder) {
+        // Load JSON file from server
+        const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+        const jsonData = await response.json();
 
-    // Function to find the S-value corresponding to a given V-value
-    async function findSValue(vValue) {
-        try {
-            // Load JSON file from server
-            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
-            const jsonData = await response.json();
+        // Find the corresponding switches for the given main feeder
+        const sValueRow = jsonData.find(row => row[0] === Main_feeder);
 
-            // Find the corresponding S-value for the given V-value
-            const sValueRow = jsonData.find(row => row[0] === vValue);
-
-            // Return the S-value if found
-            return sValueRow ? sValueRow[1] : 'Not found';
-        } catch (error) {
-            console.error('Error reading JSON file:', error);
-            throw error;
-        }
+        // Return the switches if found
+        return sValueRow ? sValueRow[1] : 'Not found';
     }
 
     const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
@@ -291,15 +269,12 @@
     map.addOverlay(pointerOverlay);
 
     function toggleDrawing() {
+        drawnFeaturesSource.clear(); // Clear previously drawn features
         if (drawingModeActive) {
-            // Clear previously drawn features if exiting drawing mode
-            drawnFeaturesSource.clear();
             map.removeInteraction(draw);
-            document.getElementById('tekenButton').style.backgroundColor = '';
+            document.getElementById('draw_Button').style.backgroundColor = '';
         } else {
-            // Clear previously drawn features if starting a new drawing
-            drawnFeaturesSource.clear();
-            document.getElementById('tekenButton').style.backgroundColor = 'green';
+            document.getElementById('draw_Button').style.backgroundColor = 'green';
             initDrawingInteraction();
 
         }
@@ -307,11 +282,7 @@
     }
 
     function initDrawingInteraction() {
-        if (!drawnFeaturesSource || !vectorLayer2 || !map) {
-            console.error('Missing required sources or map.');
-            return;
-        }
-
+        
         draw = new ol.interaction.Draw({
             source: drawnFeaturesSource,
             type: 'Polygon',
@@ -321,7 +292,6 @@
         draw.on('drawend', async function(event) {
             // Clear previous polygon
             drawnFeaturesSource.clear();
-
 
             // Lock the current polygon
             const polygonFeature = event.feature;
@@ -340,21 +310,21 @@
             // Add the drawn feature to the permanent layer
             drawnFeaturesSource.addFeature(polygonFeature);
 
-            // Perform spatial query against features in Layer 2
+            // Perform spatial query against features in feeder layer
             const intersectingFeatures = new Set();
             const polygonExtent = polygonGeometry.getExtent();
 
-            const features = vectorLayer2.getSource().getFeatures();
+            const features = feeder_layer.getSource().getFeatures();
             await Promise.all(features.map(async (feature) => {
                 const featureGeometry = feature.getGeometry();
                 const featureExtent = featureGeometry.getExtent();
                 if (ol.extent.intersects(polygonExtent, featureExtent)) {
                     const layerName = feature.get('LAYER');
-                    const vValue = layerName;
-                    const sValue = await findSValue(vValue);
-                    const edgeFeedersSet = findEdgeFeeders(layerName); // Call the function to find edge feeders
+                    const Main_feeder = layerName;
+                    const switches = await find_switches(Main_feeder);
+                    const edgeFeedersSet = findEdgeFeeders(Main_feeder); // Call the function to find edge feeders
                     const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
-                    let layerData = { layerName: layerName, edgeFeeders: edgeFeeders, Switches: sValue };
+                    let layerData = { layerName: Main_feeder, edgeFeeders: edgeFeeders, Switches: switches };
                     let isNewLayer = true;
                     for (let data of intersectingFeatures) {
                         if (data.layerName === layerName) {
@@ -369,8 +339,8 @@
             }));
 
             // Display popup with information about intersecting features
-            popupOnPinClick();
-            const popup2Element = document.querySelector('.popup2');
+            handlePinClick();
+            const popupElement = document.querySelector('.popup');
             if (intersectingFeatures.size > 0) {
                 const popupContent = Array.from(intersectingFeatures).map(function(data) {
                     const feederName = data.layerName;
@@ -390,13 +360,13 @@
 
                     return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p> ${feedersToTurnOffContent}`;
                 }).join('<hr>'); // Separate feature information with horizontal line
-                popup2Element.innerHTML = popupContent;
+                popupElement.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
-                popup2Element.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
 
             } else {
                 // If no intersecting features, display a message
-                popup2Element.style.display = 'none';
+                popupElement.style.display = 'none';
             }
 
             // Clear the drawing interaction (but keep it active)
@@ -408,13 +378,13 @@
     if (drawingModeActive) {
         //No functionality yet
     } else {
-        popupOnPinClick();
-        const popup2Element = document.querySelector('.popup2');
+        handlePinClick();
+        const popupElement = document.querySelector('.popup');
         const coordinates = event.coordinate;
         const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
         let closestFeature = null;
         let closestDistance = Infinity; // Initialize with infinity
-        vectorLayer2.getSource().forEachFeature(function(feature) {
+        feeder_layer.getSource().forEachFeature(function(feature) {
             const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
             const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
             const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
@@ -430,9 +400,9 @@
                 const closestFeatureName = closestFeature.get('LAYER');
                 const lon = transfcoordinates[0];
                 const lat = transfcoordinates[1];
-                const vValue = closestFeatureName;
-                const sValue = await findSValue(vValue);
-                const edgeFeedersSet = findEdgeFeeders(closestFeatureName); // Call the function to find edge feeders
+                const Main_feeder = closestFeatureName;
+                const Switches = await find_switches(Main_feeder);
+                const edgeFeedersSet = findEdgeFeeders(Main_feeder); // Call the function to find edge feeders
                 const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
                 // Populate the tsFeederMap object with main and edge feeder names
                  const tsFeederMap = populateTSFeederMap([closestFeatureName, ...edgeFeeders]);
@@ -449,12 +419,12 @@
 
                  // Add the generated content to the main content string
                 const content = `<h4 style="margin-top: 0;">Location information:</h4>
-                                 <p>Main feeder: ${closestFeatureName}</p>
+                                 <p>Main feeder: ${Main_feeder}</p>
                                  <p>Edge feeders: ${edgeFeeders}</p>
-                                 <p>Switches: ${sValue}</p>
+                                 <p>Switches: ${Switches}</p>
                                  ${feedersToTurnOffContent}
                                  <button id="exportButton" class="export-button">Export to Word</button>`;
-                popup2Element.innerHTML = content;
+                popupElement.innerHTML = content;
             } else {
                 const lon = transfcoordinates[0];
                 const lat = transfcoordinates[1];
@@ -462,7 +432,7 @@
                 popupElement2.innerHTML = content;
             }
         } else {
-            popup2Element.style.display = 'none'; // Hide the popup if distance exceeds threshold
+            popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
         }
     pointerOverlay.setPosition(coordinates);
     }
@@ -471,18 +441,18 @@
     // Function to handle the pin click event
     function popupOnPinClick() {
         pinClicked = true;
-        const popup2Element = document.getElementById('popup2');
+        const popupElement = document.getElementById('popup');
         if (pinClicked) {
-            popup2Element.style.display = 'block';
+            popupElement.style.display = 'block';
         } else {
-            popup2Element.style.display = 'none';
+            popupElement.style.display = 'none';
         }
     }
 
-    // Define a function to find the TS number for a given feeder name
+    //Function to find the TS number for a given feeder name
     function findTSNumber(feederName) {
         // Loop through each feature in the GeoJSON data
-        for (const feature of geojsonSource2.getFeatures()) {
+        for (const feature of Feeder_Source.getFeatures()) {
             // Check if the feature's 'LAYER' name matches the given feederName
             if (feature.get('LAYER') === feederName) {
                 // Return the TS number of the matched feature
@@ -541,8 +511,8 @@
            event.preventDefault();
            // Hide the pointer
            pointerOverlay.setPosition(undefined);
-           const popup2Element = document.getElementById('popup2');
-           popup2Element.style.display = 'none';
+           const popupElement = document.getElementById('popup');
+           popupElement.style.display = 'none';
         }
     });
     map.addLayer(drawnFeaturesLayer);
@@ -551,13 +521,13 @@
     const layerColors = {};
 
     // Load GeoJSON data for the first layer
-    const geojsonSource1 = new ol.source.Vector({
+    const Switches_source = new ol.source.Vector({
         url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars2.geojson',
         format: new ol.format.GeoJSON()
     });
 
     // Style for the first layer (dots) with red/green color and label
-    const geojsonStyle1 = function(feature) {
+    const Switch_styling = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const detail = feature.get('DETAIL1');
@@ -588,7 +558,7 @@
 
     // Find all instances of the main feeder
     const mainFeederFeatures = [];
-    vectorLayer2.getSource().forEachFeature(function(feature) {
+    feeder_layer.getSource().forEachFeature(function(feature) {
         const featureName = feature.get('LAYER');
         if (featureName === mainFeederName) {
             mainFeederFeatures.push(feature);
@@ -598,7 +568,7 @@
     // Iterate through main feeder instances and find intersecting edge feeders
     mainFeederFeatures.forEach(function(mainFeederFeature) {
         const mainFeederGeometry = mainFeederFeature.getGeometry();
-        vectorLayer2.getSource().forEachFeature(function(innerFeature) {
+        feeder_layer.getSource().forEachFeature(function(innerFeature) {
             const innerFeatureName = innerFeature.get('LAYER');
             if (innerFeatureName !== mainFeederName && mainFeederGeometry.intersectsExtent(innerFeature.getGeometry().getExtent())) {
                 edgeFeedersSet.add(innerFeatureName); // Add to the Set
@@ -627,35 +597,32 @@
 
 
     // Create the first vector layer
-    const vectorLayer1 = new ol.layer.Vector({
-        source: geojsonSource1,
-        style: geojsonStyle1
+    const switches_layer = new ol.layer.Vector({
+        source: Switches_source,
+        style: Switch_styling
     });
 
     // Add the first vector layer to the mapp
-    map.addLayer(vectorLayer1);
+    map.addLayer(switches_layer);
 
     // Load GeoJSON data for the second layer
-    const geojsonSource2 = new ol.source.Vector({
+    const Feeder_Source = new ol.source.Vector({
         url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson',
         format: new ol.format.GeoJSON()
     });
 
 
     // Create the second vector layer without style
-    const vectorLayer2 = new ol.layer.Vector({
-        source: geojsonSource2
+    const feeder_layer = new ol.layer.Vector({
+        source: Feeder_Source
     });
 
     // Add the second vector layer to the map
-    map.addLayer(vectorLayer2);
+    map.addLayer(feeder_layer);
 
     // Fetch JSON data from the server
     fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch JSON file');
-            }
             return response.json();
         })
         .then(data => {
@@ -663,12 +630,11 @@
             const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
 
             // Modified style function to use assigned colors for feeders
-            const geojsonStyle2 = function(feature) {
+            const Feeder_styling = function(feature) {
                 const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
 
                 // Get color for the current feeder from the map
                 const color = feederColors.get(layerName);
-
 
                 // If color is found, create style for the feature
                 if (color) {
@@ -693,12 +659,9 @@
             };
 
             // Set style function for the vector layer
-            vectorLayer2.setStyle(geojsonStyle2);
-        })
-        .catch(error => {
-            console.error('Error reading JSON file:', error);
-            // Handle error here
+            feeder_layer.setStyle(Feeder_styling);
         });
+        
 
     // Function to handle layer visibility
     function handleLayerVisibility(layer, checkboxId) {
@@ -717,10 +680,10 @@
         rangeInput.value = String(layer.getOpacity());
     }
 
-    const popup2Element = document.getElementById('popup2');
-    popup2Element.addEventListener('click', function(event) {
+    const popupElement = document.getElementById('popup');
+    popupElement.addEventListener('click', function(event) {
         if (event.target.id === 'exportButton') {
-             const content = popup2Element.innerHTML;
+             const content = popupElement.innerHTML;
             exportToWord(content);
         }
     });
@@ -801,12 +764,9 @@
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Address not found!');
+                    document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
                 }
             })
-            .catch(function(error) {
-                console.error('Error geocoding address:', error);
-            });
     }
 
     function reloadPage() {
@@ -814,22 +774,22 @@
     }
 
     // Handle visibility for OSM layer
-    handleLayerVisibility(map.getLayers().item(0), 'visible0');
+    handleLayerVisibility(map.getLayers().item(0), 'visible_map');
 
     // Handle visibility for QGIS layer 1
-    handleLayerVisibility(vectorLayer1, 'visible1');
+    handleLayerVisibility(switches_layer, 'visible_switches');
 
     // Handle visibility for QGIS layer 2
-    handleLayerVisibility(vectorLayer2, 'visible2');
+    handleLayerVisibility(feeder_layer, 'visible_feeders');
 
     // Handle visibility for greylayer
-    handleLayerVisibility(greyMapLayer, 'visibleGrey');
+    handleLayerVisibility(greyMapLayer, 'visible_Grey');
 
     // Handle opacity for QGIS layer 1
-    handleLayerOpacity(vectorLayer1, 'opacity1');
+    handleLayerOpacity(switches_layer, 'opacity_switches');
 
     // Handle opacity for QGIS layer 2
-    handleLayerOpacity(vectorLayer2, 'opacity2');
+    handleLayerOpacity(feeder_layer, 'opacity_feeders');
 </script>
 </body>
 </html>
