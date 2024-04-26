@@ -399,19 +399,11 @@
         <input id="visibleGrey" type="checkbox"/>
     </div>
     <div class="control-box">
-        <label for="opacity_switches">Transparantie schakelaars:</label>
-        <input id="opacity_switches" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </div>
-    <div class="control-box">
-        <label for="opacity_feeders">Transparantie voedingen:</label>
-        <input id="opacity_feeders" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </div>
-    <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
         <input id="searchInput" type="text"/>
     </div>
     <div class="control-box">
-        <button onclick="zoomToLocationOrLayer()">Zoeken</button>
+        <button onclick="searchLayerFeatureOrAddress()">Zoeken</button>
         <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
     </div>
     <div class="control-box">
@@ -780,6 +772,7 @@
     const switches_style = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
+        const detail = feature.get('DETAIL1');
         const color = 'red'; // Set color to red
         // Create style for the feature
         return new ol.style.Style({
@@ -794,7 +787,7 @@
                 })
             }),
             text: new ol.style.Text({
-                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
+                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') + (detail ? ' - ' + detail : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
                 font: 'bold 12px Calibri,sans-serif',
                 offsetY: -12,
                 fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
@@ -1064,15 +1057,6 @@
         });
     }
 
-    // Function to handle layer opacity
-    function handleLayerOpacity(layer, rangeId) {
-        const rangeInput = document.getElementById(rangeId);
-        rangeInput.addEventListener('input', function() {
-            layer.setOpacity(parseFloat(this.value));
-        });
-        rangeInput.value = String(layer.getOpacity());
-    }
-
     const popupElement = document.getElementById('popup');
     popupElement.addEventListener('click', function(event) {
         if (event.target.id === 'exportButton') {
@@ -1104,44 +1088,36 @@
         document.body.removeChild(anchor);
     }
 
+    //function to zoom to a specific location
+    function zoomToLocationOrLayer(feature) {
+        const extent = feature.getGeometry().getExtent();
+        map.getView().fit(extent, {duration: 1000});
+    }
+
     // Function to zoom to a specific location or layer
-    function zoomToLocationOrLayer() {
+    function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
-        if (searchText) {
-            let foundLayer2 = false;
-            let foundLayer1 = false;
-            // Check if the search text matches a feature in Layer 2
-            feeder_layer.getSource().forEachFeature(function(feature) {
+        if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
+        }
+        let found = false;
+        const layers = [feeder_layer, switches_layer];
+
+        layers.forEach(layer => {
+            layer.getSource().forEachFeature(feature => {
                 if (feature.get('LAYER') === searchText) {
-                    const extent = feature.getGeometry().getExtent();
-                    map.getView().fit(extent, { duration: 1000 });
-                    foundLayer2 = true;
+                    zoomToLocationOrLayer(feature);
+                    found = true;
                     return;
                 }
             });
-            // If not found in Layer 2, check Layer 1
-            if (!foundLayer2) {
-                switches_layer.getSource().forEachFeature(function(feature) {
-                    if (feature.get('LAYER') === searchText) {
-                        const extent = feature.getGeometry().getExtent();
-                        map.getView().fit(extent, { duration: 1000 });
-                        foundLayer1 = true;
-                        return;
-                    }
-                });
-            }
-            // If not found in Layer 1, try to geocode the search text as an address
-            if (!foundLayer2 && !foundLayer1) {
-                geocodeAddress(searchText);
-            }
-            // Display error message if nothing is found
-            if (!foundLayer2 && !foundLayer1 && !searchText) {
-                document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
-            } else {
-                document.getElementById('errorMessage').textContent = ''; // Clear error message
-            }
+        });
+
+        if (!found) {
+            geocodeAddress(searchText);
         } else {
-            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
         }
     }
 
@@ -1185,12 +1161,6 @@
 
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visibleGrey');
-
-    // Handle opacity for QGIS layer 1
-    handleLayerOpacity(switches_layer, 'opacity_switches');
-
-    // Handle opacity for QGIS layer 2
-    handleLayerOpacity(feeder_layer, 'opacity_feeders');
 </script>
 </body>
 </html>

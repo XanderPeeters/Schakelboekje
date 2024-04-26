@@ -714,7 +714,7 @@
         layers.forEach(layer => {
             layer.getSource().forEachFeature(feature => {
                 if (feature.get('LAYER') === searchText) {
-                    zoomToLocationOrLayer
+                    zoomToLocationOrLayer(feature);
                     found = true;
                     return;
                 }
