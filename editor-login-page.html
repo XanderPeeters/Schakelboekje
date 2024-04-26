@@ -616,69 +616,125 @@
         });
     }
 
-    map.on('click', async function(event) {
-    if (drawingModeActive) {
-        //No functionality yet
-    } else {
+
+    // Function to display a popup with location information
+    async function displayPopup(coordinates, feature, layer) {
         handlePinClick();
         const popupElement = document.querySelector('.popup');
-        const coordinates = event.coordinate;
-        const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326'); // Correct variable name
-        let closestFeature = null;
-        let closestDistance = Infinity; // Initialize with infinity
-        feeder_layer.getSource().forEachFeature(function(feature) {
-            const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
-            const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
-            const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                closestFeature = feature;
-            }
-        });
+        const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326');
 
-        // Check if distance exceeds the threshold (for example, 1000 meters)
-        if (closestDistance <= 500) {
-            if (closestFeature) {
-                const closestFeatureName = closestFeature.get('LAYER');
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
+        if (feature) {
+            const closestFeatureName = feature.get('LAYER');
+            if (layer === 'feeder_layer') {
                 const main_feeder = closestFeatureName;
                 const switches = await find_switches(main_feeder);
-                const edgeFeedersSet = findEdgeFeeders(main_feeder); // Call the function to find edge feeders
-                const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
-                // Populate the tsFeederMap object with main and edge feeder names
-                 const tsFeederMap = populateTSFeederMap([closestFeatureName, ...edgeFeeders]);
+                const edgeFeedersSet = findEdgeFeeders(main_feeder);
+                const edgeFeeders = [...edgeFeedersSet];
+                const tsFeederMap = populateTSFeederMap([closestFeatureName, ...edgeFeeders]);
 
-                // Generate the "Feeders to turn off" section content
                 let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
                 for (const tsNumber in tsFeederMap) {
                     const feederList = tsFeederMap[tsNumber].join(', ');
-                    // Include a message for "N/A" TS numbers
                     const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
                     feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
                 }
 
-
-                 // Add the generated content to the main content string
                 const content = `<h4 style="margin-top: 0;">Location information:</h4>
-                                 <p>Main feeder: ${closestFeatureName}</p>
-                                 <p>Edge feeders: ${edgeFeeders}</p>
-                                 <p>Switches: ${switches}</p>
-                                 ${feedersToTurnOffContent}
-                                 <button id="exportButton" class="export-button">Export to Word</button>`;
+                                <p>Main feeder: ${closestFeatureName}</p>
+                                <p>Edge feeders: ${edgeFeeders}</p>
+                                <p>Switches: ${switches}</p>
+                                ${feedersToTurnOffContent}
+                                <button id="exportButton" class="export-button">Export to Word</button>`;
                 popupElement.innerHTML = content;
-            } else {
-                const lon = transfcoordinates[0];
-                const lat = transfcoordinates[1];
-                const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
-                popupElement2.innerHTML = content;
+
+            // if we are working in the switches_layer, find the closest feeder and start from there to fill the popup
+            } else if (layer === 'switches_layer') {
+                // Find the closest main feeder to the input coordinates
+                let closestMainFeeder = null;
+                let closestDistance = Infinity;
+
+                feeder_layer.getSource().forEachFeature(feederFeature => {
+                    const feederName = feederFeature.get('LAYER');
+                    const feederCoords = feederFeature.getGeometry().getClosestPoint(coordinates);
+                    const distance = ol.sphere.getDistance(transfcoordinates, ol.proj.transform(feederCoords, 'EPSG:3857', 'EPSG:4326'));
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestMainFeeder = feederName;
+                    }
+                });
+                // Display information for the closest main feeder found
+                if (closestMainFeeder) {
+                    const switches = await find_switches(closestMainFeeder);
+                    const edgeFeedersSet = findEdgeFeeders(closestMainFeeder);
+                    const edgeFeeders = [...edgeFeedersSet];
+                    const tsFeederMap = populateTSFeederMap([closestMainFeeder, ...edgeFeeders]);
+
+                    let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                    for (const tsNumber in tsFeederMap) {
+                        const feederList = tsFeederMap[tsNumber].join(', ');
+                        const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                        feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                    }
+
+                    const content = `<h4 style="margin-top: 0;">Location information:</h4>
+                                    <p>Main feeder: ${closestMainFeeder}</p>
+                                    <p>Edge feeders: ${edgeFeeders}</p>
+                                    <p>Switches: ${switches}</p>
+                                    ${feedersToTurnOffContent}
+                                    <button id="exportButton" class="export-button">Export to Word</button>`;
+                    popupElement.innerHTML = content;
+                } else {
+                    popupElement.innerHTML = '<p>No main feeder found nearby.</p>';
+                }
             }
         } else {
-            popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
+            const lon = transfcoordinates[0];
+            const lat = transfcoordinates[1];
+            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+            popupElement.innerHTML = content;
         }
-    pointerOverlay.setPosition(coordinates);
+
+        placePin(coordinates);
     }
-});
+
+
+    map.on('click', async function(event) {
+        if (drawingModeActive) {
+            //No functionality yet
+        } else {
+            handlePinClick();
+            const coordinates = event.coordinate;
+            const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326');
+            let closestFeature = null;
+            let closestDistance = Infinity; // Initialize with infinity
+            feeder_layer.getSource().forEachFeature(function(feature) {
+                const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
+                const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+                const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestFeature = feature;
+                }
+            });
+
+            // Check if distance exceeds the threshold (for example, 500 meters)
+            if (closestDistance <= 500) {
+                console.log('Closest Feature:', closestFeature.get('LAYER'));
+                const closestFeatureName = closestFeature ? closestFeature.get('LAYER') : null;
+                await displayPopup(coordinates, closestFeature, 'feeder_layer');
+            } else {
+                popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
+            }
+
+        }
+    });
+
+
+    //function to place pin
+    function placePin(pinCoordinates) {
+        pointerOverlay.setPosition(pinCoordinates);
+    }
 
     // Function to handle the pin click event
     function handlePinClick() {
@@ -752,7 +808,7 @@
            // Prevent the default context menu from appearing
            event.preventDefault();
            // Hide the pointer
-           pointerOverlay.setPosition(undefined);
+           placePin(undefined);
            const popupElement = document.getElementById('popup');
            popupElement.style.display = 'none';
         }
@@ -1092,32 +1148,52 @@
     function zoomToLocationOrLayer(feature) {
         const extent = feature.getGeometry().getExtent();
         map.getView().fit(extent, {duration: 1000});
+
+        // Calculate the center of the extent
+        const centerX = (extent[0] + extent[2]) / 2;
+        const centerY = (extent[1] + extent[3]) / 2;
+        const centerCoordinates = [centerX, centerY];
+        return centerCoordinates;
     }
+        
 
     // Function to zoom to a specific location or layer
-    function searchLayerFeatureOrAddress() {
+    async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
             document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
             return;
         }
+        
+        const layers = [
+            { layer: feeder_layer, name: 'feeder_layer' },
+            { layer: switches_layer, name: 'switches_layer' }
+        ];
+        
         let found = false;
-        const layers = [feeder_layer, switches_layer];
 
-        layers.forEach(layer => {
+
+        for (const { layer, name } of layers) {
             layer.getSource().forEachFeature(feature => {
                 if (feature.get('LAYER') === searchText) {
                     zoomToLocationOrLayer(feature);
+                    const centerCoordinates = zoomToLocationOrLayer(feature);
+                    const currentLayer = name;
+                    placePin(centerCoordinates);
+                    displayPopup(centerCoordinates, feature, currentLayer);
                     found = true;
                     return;
                 }
             });
-        });
+        };
 
         if (!found) {
-            geocodeAddress(searchText);
+            geocodeAddress(searchText) 
+            const popupElement = document.getElementById('popup');
+            popupElement.style.display = 'none';  
         } else {
             document.getElementById('errorMessage').textContent = ''; // Clear error message
+            const popupElement = document.getElementById('popup');
         }
     }
 
@@ -1161,6 +1237,7 @@
 
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visibleGrey');
+    
 </script>
 </body>
 </html>
