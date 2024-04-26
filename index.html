@@ -821,6 +821,7 @@
         ];
         
         let found = false;
+        let wronginput = false;
 
 
         for (const { layer, name } of layers) {
@@ -833,14 +834,21 @@
                     displayPopup(centerCoordinates, feature, currentLayer);
                     found = true;
                     return;
+                } else {
+                    wronginput = true;
                 }
             });
         };
 
-        if (!found) {
-            geocodeAddress(searchText) 
+        if (!found && !wronginput) {
+            geocodeAddress(searchText)
+            //remove popup in this condition 
             const popupElement = document.getElementById('popup');
-            popupElement.style.display = 'none';  
+            popupElement.style.display = 'none'; 
+        } else if (!found && wronginput) {
+            alert('Adres niet gevonden!');
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
+            const popupElement = document.getElementById('popup');     
         } else {
             document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
@@ -864,7 +872,7 @@
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Address not found!');
+                    alert('Adres niet gevonden!');
                 }
             })
             .catch(function(error) {
