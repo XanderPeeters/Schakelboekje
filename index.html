@@ -179,14 +179,6 @@
         <input id="visible_Grey" type="checkbox"/>
     </div>
     <div class="control-box">
-        <label for="opacity_switches">Transparantie schakelaars:</label>
-        <input id="opacity_switches" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </div>
-    <div class="control-box">
-        <label for="opacity_feeders">Transparantie voedingen:</label>
-        <input id="opacity_feeders" class="opacity" type="range" min="0" max="1" step="0.01"/>
-    </div>
-    <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
         <input id="searchInput" type="text"/>
     </div>
@@ -605,6 +597,7 @@
     // Add the first vector layer to the mapp
     map.addLayer(switches_layer);
 
+    
     // Load GeoJSON data for the second layer
     const Feeder_Source = new ol.source.Vector({
         url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson',
@@ -669,15 +662,6 @@
         checkbox.addEventListener('change', function() {
             layer.setVisible(this.checked);
         });
-    }
-
-    // Function to handle layer opacity
-    function handleLayerOpacity(layer, rangeId) {
-        const rangeInput = document.getElementById(rangeId);
-        rangeInput.addEventListener('input', function() {
-            layer.setOpacity(parseFloat(this.value));
-        });
-        rangeInput.value = String(layer.getOpacity());
     }
 
     const popupElement = document.getElementById('popup');
@@ -783,11 +767,6 @@
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visible_Grey');
 
-    // Handle opacity for QGIS layer 1
-    handleLayerOpacity(switches_layer, 'opacity_switches');
-
-    // Handle opacity for QGIS layer 2
-    handleLayerOpacity(feeder_layer, 'opacity_feeders');
 </script>
 </body>
 </html>
