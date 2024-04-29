@@ -387,12 +387,8 @@
         <input id="visible_map" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="metroSwitch">Schakelaars metro:</label>
-        <input id="metroSwitch" class="switch" type="checkbox" checked/>
-    </div>
-    <div class="control-box">
-        <label for="bovengrondsSwitch">Schakelaars bovengronds:</label>
-        <input id="bovengrondsSwitch" class="switch" type="checkbox" checked/>
+        <label for="visible_switches">Sectie schakelaars:</label>
+        <input id="visible_switches" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="visible2">Voedingen:</label>
@@ -613,7 +609,7 @@
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popupElement.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
-                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
 
             } else {
                 // If no intersecting features, display a message
@@ -653,7 +649,7 @@
                                 <p>Edge feeders: ${edgeFeeders}</p>
                                 <p>Switches: ${switches}</p>
                                 ${feedersToTurnOffContent}
-                                <button id="exportButton" class="export-button">Export schakelnota</button>`;
+                                <button id="exportButton" class="export-button">Export to Word</button>`;
                 popupElement.innerHTML = content;
 
             // if we are working in the switches_layer, find the closest feeder and start from there to fill the popup
@@ -691,7 +687,7 @@
                                     <p>Edge feeders: ${edgeFeeders}</p>
                                     <p>Switches: ${switches}</p>
                                     ${feedersToTurnOffContent}
-                                    <button id="exportButton" class="export-button">Export schakelnota</button>`;
+                                    <button id="exportButton" class="export-button">Export to Word</button>`;
                     popupElement.innerHTML = content;
                 } else {
                     popupElement.innerHTML = '<p>No main feeder found nearby.</p>';
@@ -829,7 +825,7 @@
 
     // Load GeoJSON data for the first layer
     const Switches_source = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/SwitchesComplete.geojson',
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete.geojson',
         format: new ol.format.GeoJSON()
     });
 
@@ -1126,44 +1122,14 @@
     popupElement.addEventListener('click', function(event) {
         if (event.target.id === 'exportButton') {
              const content = popupElement.innerHTML;
-             const files = [
-            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voeding%20165.xlsm',
-            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voorbeeld%20voeding%20101.xlsm',
-            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20152.xlsm',
-            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20332.xlsm',
-            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%2081.xlsm'
-        ];
-
-        const randomIndex = Math.floor(Math.random() * files.length);
-        const randomFileURL = files[randomIndex];
-
-        // Fetch the file content
-        fetch(randomFileURL)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch file');
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                // Create a temporary anchor element to download the file
-                const downloadLink = document.createElement('a');
-                downloadLink.href = URL.createObjectURL(blob);
-                downloadLink.download = `Schakelnota_${randomIndex}.xlsm`; // Generate a dynamic filename
-                downloadLink.click();
-            })
-            .catch(error => {
-                console.error('Error fetching file:', error);
-                // Handle error here
-            });
-            //exportToWord(content);
+            exportToWord(content);
         }
     });
 
 
     function exportToWord(content) {
 
-        const contentWithoutButton = content.replace('<button id="exportButton" class="export-button">Export schakelnota</button>', '');
+        const contentWithoutButton = content.replace('<button id="exportButton" class="export-button">Export to Word</button>', '');
 
         // Create a new Blob object containing the content
         const blob = new Blob([`<html><body>${contentWithoutButton}</body></html>`], { type: 'application/msword' });
@@ -1269,43 +1235,11 @@
         location.reload();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const metroSwitch = document.getElementById('metroSwitch');
-        const bovengrondsSwitch = document.getElementById('bovengrondsSwitch');
-
-        metroSwitch.addEventListener('change', function () {
-            updateSwitchesVisibility();
-        });
-
-        bovengrondsSwitch.addEventListener('change', function () {
-            updateSwitchesVisibility();
-        });
-
-        function updateSwitchesVisibility() {
-            const metroVisible = metroSwitch.checked;
-            const bovengrondsVisible = bovengrondsSwitch.checked;
-
-            // Loop through all features and update visibility based on checkbox state
-            Switches_source.getFeatures().forEach(function (feature) {
-                const metro = feature.get('metro?');
-                if ((metro === 'metro' && metroVisible) || (metro === 'boven' && bovengrondsVisible)) {
-                    feature.setStyle(null); // Show the feature
-                } else {
-                    feature.setStyle(new ol.style.Style({ // Hide the feature
-                        fill: new ol.style.Fill({
-                            color: 'rgba(255, 255, 255, 0)'
-                        }),
-                        stroke: new ol.style.Stroke({
-                            color: 'rgba(255, 255, 255, 0)'
-                        })
-                    }));
-                }
-            });
-        }
-    });
-
     // Handle visibility for OSM layer
     handleLayerVisibility(map.getLayers().item(0), 'visible_map');
+
+    // Handle visibility for QGIS layer 1
+    handleLayerVisibility(switches_layer, 'visible_switches');
 
     // Handle visibility for QGIS layer 2
     handleLayerVisibility(feeder_layer, 'visible2');

@@ -167,12 +167,12 @@
         <input id="visible_map" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible2">Voedingen:</label>
-        <input id="visible2" class="visible" type="checkbox" checked/>
-    </div>
-    <div class="control-box">
         <label for="visibleGrey">Grijze achtergrond:</label>
         <input id="visibleGrey" type="checkbox"/>
+    </div>
+    <div class="control-box">
+        <label for="visible2">Voedingen:</label>
+        <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="metroSwitch">Schakelaars metro:</label>
@@ -396,6 +396,7 @@
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popupElement.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
                 popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
 
             } else {
@@ -973,9 +974,6 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
 }
 
 
-
-
-
     
     function exportToExcel() {
     // Retrieve the content of the popup
@@ -1049,13 +1047,15 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
     async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
         }
         
         const layers = [
             { layer: feeder_layer, name: 'feeder_layer' },
             { layer: switches_layer, name: 'switches_layer' }
         ];
-        
+
         let found = false;
         let wronginput = false;
 
@@ -1076,19 +1076,23 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
             });
         };
 
+        if (!found) {
+            geocodeAddress(searchText)
+        } 
         if (!found && !wronginput) {
             geocodeAddress(searchText)
             //remove popup in this condition 
             const popupElement = document.getElementById('popup');
+            popupElement.style.display = 'none';  
             popupElement.style.display = 'none'; 
         } else if (!found && wronginput) {
-            alert('Voeding, Schakelaar of Adres niet gevonden!');
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');     
         } else {
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
         }
     }
-
 
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
@@ -1106,13 +1110,14 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Adres niet gevonden!');
+                    alert('Voeding, schakelaar of adres niet gevonden!');
                 }
             })
             .catch(function(error) {
                 console.error('Error geocoding address:', error);
             });
     }
+
 
     function reloadPage() {
         location.reload();
