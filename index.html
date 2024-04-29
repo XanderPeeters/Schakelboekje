@@ -156,7 +156,7 @@
 <div id="controls">
     <div class="control-box" id="logoAndEditorContainer">
         <div id="logoContainer">
-           <!-- <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="75" height="auto" onclick="reloadPage()"> -->
+           <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="75" height="auto" onclick="reloadPage()">
         </div>
         <div id="editorLoginContainer">
             <button id="editorLoginButton" onclick="openEditorLoginPage()">Editor page</button>
@@ -167,16 +167,20 @@
         <input id="visible_map" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible_switches">Sectie schakelaars:</label>
-        <input id="visible_switches" class="visible" type="checkbox" checked/>
+        <label for="visibleGrey">Grijze achtergrond:</label>
+        <input id="visibleGrey" type="checkbox"/>
     </div>
     <div class="control-box">
         <label for="visible2">Voedingen:</label>
         <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visibleGrey">Grijze achtergrond:</label>
-        <input id="visibleGrey" type="checkbox"/>
+        <label for="metroSwitch">Schakelaars metro:</label>
+        <input id="metroSwitch" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="bovengrondsSwitch">Schakelaars bovengronds:</label>
+        <input id="bovengrondsSwitch" class="switch" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
@@ -385,7 +389,7 @@
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popupElement.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
-                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
 
             } else {
                 // If no intersecting features, display a message
@@ -425,7 +429,7 @@
                                 <p>Edge feeders: ${edgeFeeders}</p>
                                 <p>Switches: ${switches}</p>
                                 ${feedersToTurnOffContent}
-                                <button id="exportButton" class="export-button">Export to Excel and download image of map</button>`;
+                                <button id="exportButton" class="export-button">Export schakelnota</button>`;
                 popupElement.innerHTML = content;
 
             // if we are working in the switches_layer, find the closest feeder and start from there to fill the popup
@@ -463,7 +467,7 @@
                                     <p>Edge feeders: ${edgeFeeders}</p>
                                     <p>Switches: ${switches}</p>
                                     ${feedersToTurnOffContent}
-                                    <button id="exportButton" class="export-button">Export to Excel and download image of map</button>`;
+                                    <button id="exportButton" class="export-button">Export schakelnota</button>`;
                     popupElement.innerHTML = content;
                 } else {
                     popupElement.innerHTML = '<p>No main feeder found nearby.</p>';
@@ -771,16 +775,46 @@
     const popupElement = document.getElementById('popup');
 popupElement.addEventListener('click', function(event) {
     if (event.target.id === 'exportButton') {
+        const files = [
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voeding%20165.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voorbeeld%20voeding%20101.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20152.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20332.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%2081.xlsm'
+        ];
+
+        const randomIndex = Math.floor(Math.random() * files.length);
+        const randomFileURL = files[randomIndex];
+
+        // Fetch the file content
+        fetch(randomFileURL)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch file');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Create a temporary anchor element to download the file
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.download = `Schakelnota_${randomIndex}.xlsm`; // Generate a dynamic filename
+                downloadLink.click();
+            })
+            .catch(error => {
+                console.error('Error fetching file:', error);
+                // Handle error here
+            });
         const content = popupElement.innerHTML;
-        exportToExcel(content);
+        //exportToExcel(content);
         // Get the drawn polygon from the drawn features layer if it exists
-        const drawnPolygon = getDrawnPolygon();
-        if (drawnPolygon) {
-            exportMapImagePolygon(drawnPolygon); // Pass the drawn polygon
-        } else {
+        //const drawnPolygon = getDrawnPolygon();
+        //if (drawnPolygon) {
+          //  exportMapImagePolygon(drawnPolygon); // Pass the drawn polygon
+        // } else {
             // If no drawn polygon exists, export the current map view as an image
-            exportMapImage();
-        }
+           // exportMapImage();
+        // }
     }
 });
 
@@ -932,9 +966,6 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
 }
 
 
-
-
-
     
     function exportToExcel() {
     // Retrieve the content of the popup
@@ -1008,13 +1039,15 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
     async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
         }
         
         const layers = [
             { layer: feeder_layer, name: 'feeder_layer' },
             { layer: switches_layer, name: 'switches_layer' }
         ];
-        
+
         let found = false;
         let wronginput = false;
 
@@ -1035,19 +1068,23 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
             });
         };
 
+        if (!found) {
+            geocodeAddress(searchText)
+        } 
         if (!found && !wronginput) {
             geocodeAddress(searchText)
             //remove popup in this condition 
             const popupElement = document.getElementById('popup');
+            popupElement.style.display = 'none';  
             popupElement.style.display = 'none'; 
         } else if (!found && wronginput) {
-            alert('Voeding, Schakelaar of Adres niet gevonden!');
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');     
         } else {
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
         }
     }
-
 
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
@@ -1065,7 +1102,7 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Adres niet gevonden!');
+                    alert('Voeding, schakelaar of adres niet gevonden!');
                 }
             })
             .catch(function(error) {
@@ -1073,15 +1110,49 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
             });
     }
 
+
     function reloadPage() {
         location.reload();
     }
 
+    document.addEventListener('DOMContentLoaded', function () {
+        const metroSwitch = document.getElementById('metroSwitch');
+        const bovengrondsSwitch = document.getElementById('bovengrondsSwitch');
+
+        metroSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        bovengrondsSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        function updateSwitchesVisibility() {
+            const metroVisible = metroSwitch.checked;
+            const bovengrondsVisible = bovengrondsSwitch.checked;
+
+            // Loop through all features and update visibility based on checkbox state
+            Switches_source.getFeatures().forEach(function (feature) {
+                const metro = feature.get('metro?');
+                if ((metro === 'metro' && metroVisible) || (metro === 'boven' && bovengrondsVisible)) {
+                    feature.setStyle(null); // Show the feature
+                } else {
+                    feature.setStyle(new ol.style.Style({ // Hide the feature
+                        fill: new ol.style.Fill({
+                            color: 'rgba(255, 255, 255, 0)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(255, 255, 255, 0)'
+                        })
+                    }));
+                }
+            });
+        }
+    });
+
+
     // Handle visibility for OSM layer
     handleLayerVisibility(map.getLayers().item(0), 'visible_map');
-
-    // Handle visibility for QGIS layer 1
-    handleLayerVisibility(switches_layer, 'visible_switches');
 
     // Handle visibility for QGIS layer 2
     handleLayerVisibility(feeder_layer, 'visible2');
