@@ -983,17 +983,18 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
     saveAs(blob, 'feeder_data.xlsx');
 }
 
-// Utility function to convert array buffer to binary string
-function s2ab(s) {
-    const buf = new ArrayBuffer(s.length);
-    const view = new Uint8Array(buf);
-    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-    return buf;
-}
+    // Utility function to convert array buffer to binary string
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+        return buf;
+    }
+
     //function to zoom to a specific location
     function zoomToLocationOrLayer(feature) {
         const extent = feature.getGeometry().getExtent();
-        map.getView().fit(extent, {duration: 1000});
+        map.getView().fit(extent, {duration: 1000, maxZoom: 18});
 
         // Calculate the center of the extent
         const centerX = (extent[0] + extent[2]) / 2;
@@ -1007,8 +1008,6 @@ function s2ab(s) {
     async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
-            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
-            return;
         }
         
         const layers = [
@@ -1042,11 +1041,9 @@ function s2ab(s) {
             const popupElement = document.getElementById('popup');
             popupElement.style.display = 'none'; 
         } else if (!found && wronginput) {
-            alert('Adres niet gevonden!');
-            document.getElementById('errorMessage').textContent = ''; // Clear error message
+            alert('Voeding, Schakelaar of Adres niet gevonden!');
             const popupElement = document.getElementById('popup');     
         } else {
-            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
         }
     }

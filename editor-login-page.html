@@ -1147,7 +1147,7 @@
     //function to zoom to a specific location
     function zoomToLocationOrLayer(feature) {
         const extent = feature.getGeometry().getExtent();
-        map.getView().fit(extent, {duration: 1000});
+        map.getView().fit(extent, {duration: 1000, maxZoom: 18});
 
         // Calculate the center of the extent
         const centerX = (extent[0] + extent[2]) / 2;
@@ -1161,8 +1161,6 @@
     async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
-            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
-            return;
         }
         
         const layers = [
@@ -1171,6 +1169,7 @@
         ];
         
         let found = false;
+        let wronginput = false;
 
 
         for (const { layer, name } of layers) {
@@ -1183,16 +1182,21 @@
                     displayPopup(centerCoordinates, feature, currentLayer);
                     found = true;
                     return;
+                } else {
+                    wronginput = true;
                 }
             });
         };
 
-        if (!found) {
-            geocodeAddress(searchText) 
+        if (!found && !wronginput) {
+            geocodeAddress(searchText)
+            //remove popup in this condition 
             const popupElement = document.getElementById('popup');
-            popupElement.style.display = 'none';  
+            popupElement.style.display = 'none'; 
+        } else if (!found && wronginput) {
+            alert('Voeding, Schakelaar of Adres niet gevonden!');
+            const popupElement = document.getElementById('popup');     
         } else {
-            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
         }
     }
@@ -1214,7 +1218,7 @@
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Address not found!');
+                    alert('Adres niet gevonden!');
                 }
             })
             .catch(function(error) {
@@ -1237,7 +1241,7 @@
 
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visibleGrey');
-    
+
 </script>
 </body>
 </html>
