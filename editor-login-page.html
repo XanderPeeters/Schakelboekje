@@ -446,7 +446,7 @@
         }
     }
 
-    // Function to find the S-value corresponding to a given V-value
+    // Function to find the items corresponding to a given V-number
     async function find_switches(main_feeder) {
         try {
             // Load JSON file from server
@@ -456,11 +456,16 @@
             }
             const jsonData = await response.json();
 
-            // Find the corresponding S-value for the given V-value
-            const switchesRow = jsonData.find(row => row[0] === main_feeder);
+            // Ensure jsonData is an array
+            if (!Array.isArray(jsonData)) {
+                throw new Error('Invalid JSON data format');
+            }
 
-            // Return the S-value if found
-            return switchesRow ? switchesRow[1] : 'Not found';
+            // Find the corresponding items for the given V-number
+            const switchesRow = jsonData.find(row => row['V-number'] === main_feeder);
+
+            // Return the items if found
+            return switchesRow ? switchesRow['Items'] : 'Not found';
         } catch (error) {
             console.error('Error reading JSON file:', error);
             throw error;
