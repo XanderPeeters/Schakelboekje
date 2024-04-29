@@ -167,16 +167,20 @@
         <input id="visible_map" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="visible_switches">Sectie schakelaars:</label>
-        <input id="visible_switches" class="visible" type="checkbox" checked/>
-    </div>
-    <div class="control-box">
         <label for="visible2">Voedingen:</label>
         <input id="visible2" class="visible" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="visibleGrey">Grijze achtergrond:</label>
         <input id="visibleGrey" type="checkbox"/>
+    </div>
+    <div class="control-box">
+        <label for="metroSwitch">Schakelaars metro:</label>
+        <input id="metroSwitch" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="bovengrondsSwitch">Schakelaars bovengronds:</label>
+        <input id="bovengrondsSwitch" class="switch" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
@@ -1107,11 +1111,44 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
         location.reload();
     }
 
+    document.addEventListener('DOMContentLoaded', function () {
+        const metroSwitch = document.getElementById('metroSwitch');
+        const bovengrondsSwitch = document.getElementById('bovengrondsSwitch');
+
+        metroSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        bovengrondsSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        function updateSwitchesVisibility() {
+            const metroVisible = metroSwitch.checked;
+            const bovengrondsVisible = bovengrondsSwitch.checked;
+
+            // Loop through all features and update visibility based on checkbox state
+            Switches_source.getFeatures().forEach(function (feature) {
+                const metro = feature.get('metro?');
+                if ((metro === 'metro' && metroVisible) || (metro === 'boven' && bovengrondsVisible)) {
+                    feature.setStyle(null); // Show the feature
+                } else {
+                    feature.setStyle(new ol.style.Style({ // Hide the feature
+                        fill: new ol.style.Fill({
+                            color: 'rgba(255, 255, 255, 0)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(255, 255, 255, 0)'
+                        })
+                    }));
+                }
+            });
+        }
+    });
+
+
     // Handle visibility for OSM layer
     handleLayerVisibility(map.getLayers().item(0), 'visible_map');
-
-    // Handle visibility for QGIS layer 1
-    handleLayerVisibility(switches_layer, 'visible_switches');
 
     // Handle visibility for QGIS layer 2
     handleLayerVisibility(feeder_layer, 'visible2');
