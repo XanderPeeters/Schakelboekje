@@ -604,7 +604,7 @@
                 }).join('<hr>'); // Separate feature information with horizontal line
                 popupElement.innerHTML = popupContent;
                 // Add the export button separately outside of the mapping function
-                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export to Word</button>';
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
 
             } else {
                 // If no intersecting features, display a message
@@ -644,7 +644,7 @@
                                 <p>Edge feeders: ${edgeFeeders}</p>
                                 <p>Switches: ${switches}</p>
                                 ${feedersToTurnOffContent}
-                                <button id="exportButton" class="export-button">Export to Word</button>`;
+                                <button id="exportButton" class="export-button">Export schakelnota</button>`;
                 popupElement.innerHTML = content;
 
             // if we are working in the switches_layer, find the closest feeder and start from there to fill the popup
@@ -682,7 +682,7 @@
                                     <p>Edge feeders: ${edgeFeeders}</p>
                                     <p>Switches: ${switches}</p>
                                     ${feedersToTurnOffContent}
-                                    <button id="exportButton" class="export-button">Export to Word</button>`;
+                                    <button id="exportButton" class="export-button">Export schakelnota</button>`;
                     popupElement.innerHTML = content;
                 } else {
                     popupElement.innerHTML = '<p>No main feeder found nearby.</p>';
@@ -1117,14 +1117,44 @@
     popupElement.addEventListener('click', function(event) {
         if (event.target.id === 'exportButton') {
              const content = popupElement.innerHTML;
-            exportToWord(content);
+             const files = [
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voeding%20165.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voorbeeld%20voeding%20101.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20152.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20332.xlsm',
+            'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%2081.xlsm'
+        ];
+
+        const randomIndex = Math.floor(Math.random() * files.length);
+        const randomFileURL = files[randomIndex];
+
+        // Fetch the file content
+        fetch(randomFileURL)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch file');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Create a temporary anchor element to download the file
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.download = `Schakelnota_${randomIndex}.xlsm`; // Generate a dynamic filename
+                downloadLink.click();
+            })
+            .catch(error => {
+                console.error('Error fetching file:', error);
+                // Handle error here
+            });
+            //exportToWord(content);
         }
     });
 
 
     function exportToWord(content) {
 
-        const contentWithoutButton = content.replace('<button id="exportButton" class="export-button">Export to Word</button>', '');
+        const contentWithoutButton = content.replace('<button id="exportButton" class="export-button">Export schakelnota</button>', '');
 
         // Create a new Blob object containing the content
         const blob = new Blob([`<html><body>${contentWithoutButton}</body></html>`], { type: 'application/msword' });
