@@ -171,16 +171,20 @@
         <input id="visibleGrey" type="checkbox"/>
     </div>
     <div class="control-box">
-        <label for="visible2">Voedingen:</label>
-        <input id="visible2" class="visible" type="checkbox" checked/>
-    </div>
-    <div class="control-box">
-        <label for="metroSwitch">Schakelaars metro:</label>
+        <label for="metroSwitch">Metro schakelaars</label>
         <input id="metroSwitch" class="switch" type="checkbox" checked/>
     </div>
     <div class="control-box">
-        <label for="bovengrondsSwitch">Schakelaars bovengronds:</label>
+        <label for="bovengrondsSwitch">Bovengronds schakelaars:</label>
         <input id="bovengrondsSwitch" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="voedingenMetro">Metro Voedingen:</label>
+        <input id="voedingenMetro" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="voedingenBovengronds">Bovengronds Voedingen:</label>
+        <input id="voedingenBovengronds" class="switch" type="checkbox" checked/>
     </div>
     <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
@@ -1158,12 +1162,43 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
         }
     });
 
+    document.addEventListener('DOMContentLoaded', function () {
+        const voedingenMetroSwitch = document.getElementById('voedingenMetro');
+        const voedingenBovengrondsSwitch = document.getElementById('voedingenBovengronds');
+
+        voedingenMetroSwitch.addEventListener('change', function () {
+            updateVoedingenVisibility();
+        });
+
+        voedingenBovengrondsSwitch.addEventListener('change', function () {
+            updateVoedingenVisibility();
+        });
+
+        function updateVoedingenVisibility() {
+            const voedingenMetroVisible = voedingenMetroSwitch.checked;
+            const voedingenBovengrondsVisible = voedingenBovengrondsSwitch.checked;
+
+            // Assuming you have a function Feeders_source.getFeatures() similar to the one used before
+            Feeders_source.getFeatures().forEach(function (feature) {
+                const metro = feature.get('metro?');
+                if ((metro === 'metro' && voedingenMetroVisible) || (metro === 'boven' && voedingenBovengrondsVisible)) {
+                    feature.setStyle(null); // Show the feature
+                } else {
+                    feature.setStyle(new ol.style.Style({ // Hide the feature
+                        fill: new ol.style.Fill({
+                            color: 'rgba(255, 255, 255, 0)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(255, 255, 255, 0)'
+                        })
+                    }));
+                }
+            });
+        }
+    });
 
     // Handle visibility for OSM layer
     handleLayerVisibility(map.getLayers().item(0), 'visible_map');
-
-    // Handle visibility for QGIS layer 2
-    handleLayerVisibility(feeder_layer, 'visible2');
 
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visibleGrey');
