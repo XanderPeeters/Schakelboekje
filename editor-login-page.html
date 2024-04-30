@@ -996,24 +996,33 @@
     function findEdgeFeeders(mainFeederName) {
     const edgeFeedersSet = new Set();
 
-    // Find all instances of the main feeder
-    const mainFeederFeatures = [];
+    // Find all instances of the main feeder and collect its outer points
+    const mainFeederPoints = new Set();
     feeder_layer.getSource().forEachFeature(function(feature) {
         const featureName = feature.get('LAYER');
         if (featureName === mainFeederName) {
-            mainFeederFeatures.push(feature);
+            const featureGeometry = feature.getGeometry();
+            featureGeometry.getCoordinates().forEach(lineString => {
+                const lineStringLength = lineString.length;
+                mainFeederPoints.add(lineString[0].toString());
+                mainFeederPoints.add(lineString[lineStringLength - 1].toString());
+            });
         }
     });
 
-    // Iterate through main feeder instances and find intersecting edge feeders
-    mainFeederFeatures.forEach(function(mainFeederFeature) {
-        const mainFeederGeometry = mainFeederFeature.getGeometry();
-        feeder_layer.getSource().forEachFeature(function(innerFeature) {
-            const innerFeatureName = innerFeature.get('LAYER');
-            if (innerFeatureName !== mainFeederName && mainFeederGeometry.intersectsExtent(innerFeature.getGeometry().getExtent())) {
-                edgeFeedersSet.add(innerFeatureName); // Add to the Set
-            }
-        });
+    // Iterate through all features and find intersecting edge feeders
+    feeder_layer.getSource().forEachFeature(function(feature) {
+        const featureName = feature.get('LAYER');
+        if (featureName !== mainFeederName) {
+            const featureGeometry = feature.getGeometry();
+            featureGeometry.getCoordinates().forEach(lineString => {
+                lineString.forEach(point => {
+                    if (mainFeederPoints.has(point.toString())) {
+                        edgeFeedersSet.add(featureName); // Add to the Set
+                    }
+                });
+            });
+        }
     });
 
     return edgeFeedersSet;
