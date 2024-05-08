@@ -150,6 +150,19 @@
             background-color: #0056b3; /* Darker blue on hover */
         }
 
+        #controls {
+            position: fixed; /* or absolute */
+            top: 0;
+            left: 0;
+            height: 100%; /* Adjust as needed */
+            width: 300px; /* Adjust as needed */
+            background-color: #f8f9fa;
+            overflow-y: auto; /* Enable vertical scrolling */
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 1000; /* Ensure it's above other content */
+        }
+
     </style>
 </head>
 <body>
@@ -207,7 +220,6 @@
         <i class="fas fa-dot-circle" style="color: green;"></i> <span style="color: green;">Open</span>
     </div>
 </div>
-
 <script>
     let map;
     let draw;
@@ -616,7 +628,7 @@
 
     // Load GeoJSON data for the first layer
     const Switches_source = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete.geojson',
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete2%20(2).geojson',
         format: new ol.format.GeoJSON(),
         crossOrigin: 'anonymous',
     });
@@ -626,7 +638,13 @@
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const detail = feature.get('DETAIL1');
-        const color = 'red'; // Set color to red
+        const state = feature.get('State');
+        let color = 'red'; // Set color to red by default
+
+        // Check if the state is "closed", then change the color to green
+        if (state === 'open') {
+            color = 'green';
+        }
         // Create style for the feature
         return new ol.style.Style({
             image: new ol.style.Circle({
@@ -984,9 +1002,8 @@ function zoomToMainFeederExtent(mainFeederFeatures) {
         }
     }, 1500); // Adjust this delay as needed to ensure the map has rendered at the new extent
 }
+   
 
-
-    
     function exportToExcel() {
     // Retrieve the content of the popup
     const popupContent = document.querySelector('.popup').innerText;

@@ -305,6 +305,19 @@
             background-color: #0056b3; /* Darker blue on hover */
         }
 
+        #controls {
+            position: fixed; /* or absolute */
+            top: 0;
+            left: 0;
+            height: 100%; /* Adjust as needed */
+            width: 300px; /* Adjust as needed */
+            background-color: #f8f9fa;
+            overflow-y: auto; /* Enable vertical scrolling */
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 1000; /* Ensure it's above other content */
+        }
+
     </style>
 </head>
 <body>
@@ -416,6 +429,21 @@
     </div>
     <div class="control-box">
         <button id="draw_Button" onclick="toggleDrawing()">Teken</button>
+    </div>
+    <br>
+    <div class="control-box">
+        <label for="switchNumber">Verander status van schakelaar:</label>
+        <input type="text" id="switchNumber" name="switchNumber">
+    </div>
+    <div class="control-box">
+        <label for="newState">Nieuwe status:</label>
+        <select id="newState" name="newState">
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+        </select>
+    </div>
+    <div class="control-box">
+        <button id="switchStateButton">Verander status</button>
     </div>
 </div>
 <div id="map"></div>
@@ -833,7 +861,7 @@
 
     // Load GeoJSON data for the first layer
     const Switches_source = new ol.source.Vector({
-        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete.geojson',
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete2%20(2).geojson',
         format: new ol.format.GeoJSON()
     });
 
@@ -842,7 +870,13 @@
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const detail = feature.get('DETAIL1');
-        const color = 'red'; // Set color to red
+        const state = feature.get('State');
+        let color = 'red'; // Set color to red by default
+
+        // Check if the state is "closed", then change the color to green
+        if (state === 'open') {
+            color = 'green';
+        }
         // Create style for the feature
         return new ol.style.Style({
             image: new ol.style.Circle({
@@ -1237,6 +1271,64 @@
             const popupElement = document.getElementById('popup');
         }
     }
+
+    // Function to update the state of a switch
+        function updateSwitchState(switchNum, newState) {
+            // Find the switch by its unique identifier (NUMMERSCHA)
+            const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+            const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+
+            if (switchFeature) {
+                // Set the new state to the switch
+                switchFeature.set('State', newState);
+
+                // Update the style of the switch based on the new state
+                switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
+
+                // Optionally, you can update the GeoJSON data on the server
+                // after the switch state is modified
+                updateGeoJSON();
+            } else {
+                console.error('Switch not found.');
+            }
+        }
+
+
+        function updateGeoJSON() {
+            // Get the GeoJSON format of the switches features
+            const geoJSONFormat = new ol.format.GeoJSON();
+            const geoJSONData = geoJSONFormat.writeFeatures(Switches_source.getFeatures()); // Change switchesSource to Switches_source
+            
+            // Send the updated GeoJSON data to the server
+            // You can use fetch or another method to send the data
+            fetch('URL_TO_UPDATE_GEOJSON', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(geoJSONData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update GeoJSON data.');
+                }
+                console.log('GeoJSON data updated successfully.');
+            })
+            .catch(error => {
+                console.error('Error updating GeoJSON data:', error);
+                // Handle error here
+            });
+        }
+
+
+                // Event listener for changing the state of a switch
+                document.getElementById('switchStateButton').addEventListener('click', function () {
+                    const switchNum = document.getElementById('switchNumber').value;
+                    const newState = document.getElementById('newState').value;
+
+                    // Call the updateSwitchState function with the switch number and new state
+                    updateSwitchState(switchNum, newState);
+                }); 
 
 
     // Function to geocode an address and zoom to its location
