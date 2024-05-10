@@ -879,7 +879,6 @@
         format: new ol.format.GeoJSON()
     });
 
-    // Style for the first layer (dots) with red/green color and label
     const switches_style = function(feature) {
         const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
@@ -891,6 +890,11 @@
         if (state === 'open') {
             color = 'green';
         }
+
+        // Calculate label visibility based on zoom level
+        const minZoomLevel = 17; // Adjust the minimum zoom level as needed
+        const visible = map.getView().getZoom() >= minZoomLevel;
+
         // Create style for the feature
         return new ol.style.Style({
             image: new ol.style.Circle({
@@ -904,10 +908,20 @@
                 })
             }),
             text: new ol.style.Text({
-                text: map.getView().getZoom() >= 15 ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') + (detail ? ' - ' + detail : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
-                font: 'bold 12px Calibri,sans-serif',
+                text: visible ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') + (detail ? ' - ' + detail : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
+                font: 'bold 10px Calibri,sans-serif', // Adjust font size
                 offsetY: -12,
-                fill: new ol.style.Fill({ color: 'black' }) // Use the same color for the label
+                fill: new ol.style.Fill({ color: 'black' }), // Use the same color for the label
+                // Custom function to adjust label placement to avoid collisions
+                overflow: true, // Allow text to overflow the container if necessary
+                placement: 'point', // Place the text at a point on the feature
+                padding: [5, 5, 5, 5], // Padding around the text to avoid collision
+                textAlign: 'center', // Center-align the text
+                textBaseline: 'middle', // Align the text vertically at the center
+                stroke: new ol.style.Stroke({ // Stroke style for the text
+                    color: '#fff', // White color for the stroke
+                    width: 3 // Stroke width
+                })
             })
         });
     };
@@ -1138,8 +1152,8 @@
             // Define a map to store colors for feeders
             const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
 
-            // Modified style function to use assigned colors for feeders
-            const feeder_styling = function(feature) {
+            // Modified style function to use assigned colors for feeders and prevent text overlap
+            const feeder_styling = function(feature, resolution) {
                 const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
 
                 // Get color for the current feeder from the map
@@ -1157,6 +1171,12 @@
                         }
                     };
 
+                    // Calculate font size based on zoom level
+                    const minFontSize = 10; // Adjust the minimum font size as needed
+                    const maxFontSize = 14; // Adjust the maximum font size as needed
+                    const zoom = map.getView().getZoom();
+                    const fontSize = Math.max(minFontSize, maxFontSize - (zoom - 10)); // Adjust the base zoom level as needed (10 in this example)
+
                     // Style for the feature
                     return new ol.style.Style({
                         stroke: new ol.style.Stroke({
@@ -1164,12 +1184,21 @@
                             width: 3
                         }),
                         text: new ol.style.Text({
-                            text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 15
-                            font: 'bold 12px Calibri,sans-serif',
+                            text: map.getView().getZoom() >= 15 ? layerName : '',  // Always show the label
+                            font: `bold ${fontSize}px Calibri,sans-serif`, // Adjust font size dynamically based on zoom level
                             offsetY: -12,
                             fill: new ol.style.Fill({ color: 'black' }),
                             // Event listener for click on layer name
-                            onClick: handleClick
+                            onClick: handleClick,
+                            overflow: true, // Allow text to overflow the container if necessary
+                            placement: 'point', // Place the text at a point on the feature
+                            maxAngle: Math.PI / 6, // Limit the rotation of the text
+                            textAlign: 'center', // Center-align the text
+                            textBaseline: 'middle', // Align the text vertically at the center
+                            stroke: new ol.style.Stroke({ // Stroke style for the text
+                                color: '#fff', // White color for the stroke
+                                width: 3 // Stroke width
+                            })
                         })
                     });
                 } else {
