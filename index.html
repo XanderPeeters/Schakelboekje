@@ -744,6 +744,16 @@
     // Add the second vector layer to the map
     map.addLayer(feeder_layer);
 
+
+    // Define a mapping of feeder names to image URLs
+    const feederImageMap = {
+        'V037': 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20stelplaats%20V037.png?raw=true',
+        'V314': 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V361V314.png?raw=true',
+        'V361' : 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V361.png?raw=true',
+        'V353' : 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V353.png?raw=true',
+        // Add more mappings as needed
+    };
+
     // Fetch JSON data from the server
     fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
         .then(response => {
@@ -765,6 +775,17 @@
 
                 // If color is found, create style for the feature
                 if (color) {
+                    // Function to handle click event on layer name
+                    const handleClick = function() {
+                        const imageUrl = feederImageMap[layerName];
+                        if (imageUrl) {
+                            window.open(imageUrl, '_blank');
+                        } else {
+                            console.error('Image URL not found for feeder:', layerName);
+                        }
+                    };
+
+                    // Style for the feature
                     return new ol.style.Style({
                         stroke: new ol.style.Stroke({
                             color: color,
@@ -774,7 +795,9 @@
                             text: map.getView().getZoom() >= 15 ? layerName : '', // Show label only from zoom level 15
                             font: 'bold 12px Calibri,sans-serif',
                             offsetY: -12,
-                            fill: new ol.style.Fill({ color: 'black' })
+                            fill: new ol.style.Fill({ color: 'black' }),
+                            // Event listener for click on layer name
+                            onClick: handleClick
                         })
                     });
                 } else {
@@ -809,6 +832,30 @@
             layer.setVisible(this.checked);
         });
     }
+
+
+        // Create a new select interaction
+    const selectInteraction = new ol.interaction.Select({
+        condition: ol.events.condition.click // Trigger selection on click
+    });
+
+    // Add the select interaction to the map
+    map.addInteraction(selectInteraction);
+
+    // Event listener for feature selection
+    selectInteraction.on('select', function(event) {
+        const selectedFeatures = event.target.getFeatures();
+        if (selectedFeatures.getLength() > 0) {
+            const selectedFeature = selectedFeatures.item(0);
+            const layerName = selectedFeature.get('LAYER');
+            const imageUrl = feederImageMap[layerName];
+            if (imageUrl) {
+                window.open(imageUrl, '_blank');
+            } else {
+                console.error('Image URL not found for feeder:', layerName);
+            }
+        }
+    });
 
     const popupElement = document.getElementById('popup');
     popupElement.addEventListener('click', function(event) {
