@@ -318,6 +318,20 @@
             z-index: 1000; /* Ensure it's above other content */
         }
 
+        /* CSS for message elements */
+        .message {
+            margin-top: 5px; /* Add some space between the input and message */
+        }
+
+        .success {
+            color: green; /* Green text for success messages */
+        }
+
+        .error {
+            color: red; /* Red text for error messages */
+        }
+
+
     </style>
 </head>
 <body>
@@ -1272,63 +1286,64 @@
         }
     }
 
+    // Function to display a message under the switchNumber element
+    function displayMessage(message, isSuccess) {
+        // Remove any existing message element
+        const existingMessage = document.querySelector('.message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Create a new message element
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        messageElement.classList.add('message');
+        
+        // Set the color based on isSuccess flag
+        if (isSuccess) {
+            messageElement.classList.add('success');
+        } else {
+            messageElement.classList.add('error');
+        }
+        
+        // Get the switchNumber element
+        const switchNumberElement = document.getElementById('switchNumber');
+        
+        // Insert the message element after the switchNumber element
+        switchNumberElement.parentNode.insertBefore(messageElement, switchNumberElement.nextSibling);
+    }
+
     // Function to update the state of a switch
-        function updateSwitchState(switchNum, newState) {
-            // Find the switch by its unique identifier (NUMMERSCHA)
-            const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
-            const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+    function updateSwitchState(switchNum, newState) {
+        // Find the switch by its unique identifier (NUMMERSCHA)
+        const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+        const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
 
-            if (switchFeature) {
-                // Set the new state to the switch
-                switchFeature.set('State', newState);
+        if (switchFeature) {
+            // Set the new state to the switch
+            switchFeature.set('State', newState);
 
-                // Update the style of the switch based on the new state
-                switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
+            // Update the style of the switch based on the new state
+            switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
 
-                // Optionally, you can update the GeoJSON data on the server
-                // after the switch state is modified
-                updateGeoJSON();
-            } else {
-                console.error('Switch not found.');
-            }
+            // Display success message
+            displayMessage('Switch state updated successfully.', true);
+        } else {
+            // Display error message
+            displayMessage('Switch not found.', false);
         }
+    }
+
+    // Event listener for changing the state of a switch
+    document.getElementById('switchStateButton').addEventListener('click', function () {
+        const switchNum = document.getElementById('switchNumber').value;
+        const newState = document.getElementById('newState').value;
+
+        // Call the updateSwitchState function with the switch number and new state
+        updateSwitchState(switchNum, newState);
+    });
 
 
-        function updateGeoJSON() {
-            // Get the GeoJSON format of the switches features
-            const geoJSONFormat = new ol.format.GeoJSON();
-            const geoJSONData = geoJSONFormat.writeFeatures(Switches_source.getFeatures()); // Change switchesSource to Switches_source
-            
-            // Send the updated GeoJSON data to the server
-            // You can use fetch or another method to send the data
-            fetch('URL_TO_UPDATE_GEOJSON', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(geoJSONData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to update GeoJSON data.');
-                }
-                console.log('GeoJSON data updated successfully.');
-            })
-            .catch(error => {
-                console.error('Error updating GeoJSON data:', error);
-                // Handle error here
-            });
-        }
-
-
-                // Event listener for changing the state of a switch
-                document.getElementById('switchStateButton').addEventListener('click', function () {
-                    const switchNum = document.getElementById('switchNumber').value;
-                    const newState = document.getElementById('newState').value;
-
-                    // Call the updateSwitchState function with the switch number and new state
-                    updateSwitchState(switchNum, newState);
-                }); 
 
 
     // Function to geocode an address and zoom to its location
