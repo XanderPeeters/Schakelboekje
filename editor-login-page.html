@@ -8,6 +8,8 @@
     <title>Map OpenLayers</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.2/awesomplete.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.2/awesomplete.min.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.4/xlsx.full.min.js"></script> <!-- Include SheetJS library -->
     <style>
@@ -435,7 +437,8 @@
     </div>
     <div class="control-box">
         <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
-        <input id="searchInput" type="text"/>
+        <input id="searchInput" type="text" class="awesomplete" data-list="#addressList" />
+        <datalist id="addressList"></datalist>
     </div>
     <div class="control-box">
         <button onclick="searchLayerFeatureOrAddress()">Zoeken</button>
@@ -1320,13 +1323,15 @@
     async function searchLayerFeatureOrAddress() {
         const searchText = document.getElementById('searchInput').value;
         if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
         }
         
         const layers = [
             { layer: feeder_layer, name: 'feeder_layer' },
             { layer: switches_layer, name: 'switches_layer' }
         ];
-        
+
         let found = false;
         let wronginput = false;
 
@@ -1347,15 +1352,20 @@
             });
         };
 
+        if (!found) {
+            geocodeAddress(searchText)
+        } 
         if (!found && !wronginput) {
             geocodeAddress(searchText)
             //remove popup in this condition 
             const popupElement = document.getElementById('popup');
+            popupElement.style.display = 'none';  
             popupElement.style.display = 'none'; 
         } else if (!found && wronginput) {
-            alert('Voeding, Schakelaar of Adres niet gevonden!');
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');     
         } else {
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
             const popupElement = document.getElementById('popup');
         }
     }
@@ -1422,9 +1432,7 @@
 
     // Function to geocode an address and zoom to its location
     function geocodeAddress(address) {
-        const postalcode = '2000';
-        const city = 'Antwerpen';
-        const fullAddress = address + ', ' + city + ', ' + postalcode;
+        const fullAddress = address;
         const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(fullAddress);
         fetch(url)
             .then(function(response) {
@@ -1436,13 +1444,42 @@
                     const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
                     map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
                 } else {
-                    alert('Adres niet gevonden!');
+                    alert('Voeding, schakelaar of adres niet gevonden!');
                 }
             })
             .catch(function(error) {
                 console.error('Error geocoding address:', error);
             });
     }
+
+    // Function to fetch address suggestions and populate the datalist
+    async function fetchAddressSuggestions(input) {
+        const antwerpBounds = '4.2355,51.1591,4.4728,51.2463'; // Antwerp bounding box
+        const url = `https://nominatim.openstreetmap.org/search?format=json&viewbox=${antwerpBounds}&bounded=1&limit=5&q=${encodeURIComponent(input)}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(data); // Log the response
+            const suggestions = data.map(item => item.display_name);
+            return suggestions;
+        } catch (error) {
+            console.error('Error fetching address suggestions:', error);
+            return [];
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+            // Your JavaScript code here
+            const input = document.getElementById('searchInput');
+            const list = document.getElementById('addressList');
+            const awesomplete = new Awesomplete(input, { list });
+
+            input.addEventListener('input', async function() {
+                const suggestions = await fetchAddressSuggestions(input.value);
+                awesomplete.list = suggestions;
+            });
+        });
 
     function reloadPage() {
         location.reload();
