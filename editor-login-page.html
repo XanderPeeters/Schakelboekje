@@ -1397,26 +1397,179 @@
         switchNumberElement.parentNode.insertBefore(messageElement, switchNumberElement.nextSibling);
     }
 
-    // Function to update the state of a switch
-    function updateSwitchState(switchNum, newState) {
-        // Find the switch by its unique identifier (NUMMERSCHA)
-        const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
-        const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+   // Define global variables to store feeder colors and switch data
+let feederColors;
+let switchData;
 
-        if (switchFeature) {
-            // Set the new state to the switch
-            switchFeature.set('State', newState);
+// Define a global variable to store the most recent colors assigned by switches
+const recentSwitchColors = {};
 
-            // Update the style of the switch based on the new state
-            switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
+// Function to update the state of a switch
+function updateSwitchState(switchNum, newState) {
+    console.log(`Updating switch ${switchNum} to state ${newState}`);
+    // Find the switch by its unique identifier (NUMMERSCHA)
+    const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+    const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
 
-            // Display success message
-            displayMessage('Switch state updated successfully.', true);
+    if (switchFeature) {
+        // Set the new state to the switch
+        switchFeature.set('State', newState);
+
+        // Find the switch data for the current switchNum
+        const switchInfo = switchData.find(info => info.switch_name === switchNum);
+
+        if (switchInfo) {
+            // Get the color of closest_section_1
+            const color = feederColors.get(switchInfo.closest_section_1);
+
+            if (color) {
+                // Update the color of closest_section_2 to match closest_section_1
+                const closestSection2 = switchInfo.closest_section_2;
+
+                // Find all features in the feeder layer that match closestSection2
+                const features = feeder_layer.getSource().getFeatures();
+                features.forEach(feature => {
+                    if (feature.get('LAYER') === closestSection2) {
+                        if (newState === 'open') {
+                            // Assign the new color to closest_section_2
+                            const newFeederColor = recentSwitchColors[switchInfo.closest_section_1] || color;
+                            feature.setStyle(new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: newFeederColor,
+                                    width: 3
+                                })
+                            }));
+
+                            // Update the neighboring feeder's color
+                            updateNeighboringFeederColor(closestSection2, newFeederColor);
+                        } else if (newState === 'closed') {
+                            // Revert closest_section_2 back to its original color from feederColors
+                            const originalColor = feederColors.get(closestSection2);
+                            feature.setStyle(new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: originalColor,
+                                    width: 3
+                                })
+                            }));
+                        }
+                    }
+                });
+                console.log('Feeder color updated successfully.');
+            } else {
+                console.error('Color not found for closestSection1:', switchInfo.closest_section_1);
+            }
         } else {
-            // Display error message
-            displayMessage('Switch not found.', false);
+            // Display error message if switch data is not found
+            displayMessage('Switch data not found.', false);
+            console.error('Switch data not found.');
         }
+
+        // Update the style of the switch based on the new state
+        switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
+
+        // Display success message
+        displayMessage('Switch state updated successfully.', true);
+
+        // Refresh the map to reflect the style changes
+        map.render();
+    } else {
+        // Display error message
+        displayMessage('Switch not found.', false);
+        console.error('Switch not found.');
     }
+}
+
+
+// Function to update the neighboring feeder's color based on the updated feeder's color
+function updateNeighboringFeederColor(feederName, newColor) {
+    // Find the neighboring feeder based on the feederName
+    const neighboringFeeder = switchData.find(info => info.closest_section_1 === feederName || info.closest_section_2 === feederName);
+
+    if (neighboringFeeder) {
+        // Get the name of the neighboring feeder
+        const neighboringFeederName = neighboringFeeder.closest_section_1 === feederName ? neighboringFeeder.closest_section_2 : neighboringFeeder.closest_section_1;
+
+        // Find the feature in the feeder layer based on the name of the neighboring feeder
+        const features = feeder_layer.getSource().getFeatures();
+        const neighboringFeederFeature = features.find(feature => feature.get('LAYER') === neighboringFeederName);
+
+        if (neighboringFeederFeature) {
+            console.log('Neighboring feeder found:', neighboringFeederName);
+
+            // Use the most recent color assigned by the switch
+            const newFeederColor = recentSwitchColors[feederName] || newColor;
+            neighboringFeederFeature.setStyle(new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: newFeederColor,
+                    width: 3
+                })
+            }));
+            console.log('Neighboring feeder color updated successfully.');
+        } else {
+            console.error('Neighboring feeder feature not found:', neighboringFeederName);
+        }
+    } else {
+        console.error('Neighboring feeder not found for:', feederName);
+    }
+}
+
+// Fetch JSON data for feeder colors
+fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch JSON file');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Define a map to store colors for feeders
+        feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
+
+        console.log('Feeder colors loaded successfully.');
+    })
+    .catch(error => {
+        console.error('Error reading JSON file:', error);
+        // Handle error here
+    });
+
+// Fetch JSON data for switch data
+fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars_met_voedingen.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch JSON file');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Store switch data
+        switchData = data;
+
+        console.log('Switch data loaded successfully.');
+    })
+    .catch(error => {
+        console.error('Error reading JSON file:', error);
+        // Handle error here
+    });
+
+// Event listener to update the most recent colors assigned by switches
+Switches_source.on('change', function(event) {
+    if (event.target && event.target.getFeatures) {
+        const features = event.target.getFeatures();
+        features.forEach(feature => {
+            const switchNum = feature.get('NUMMERSCHA');
+            const newState = feature.get('State');
+            const switchInfo = switchData.find(info => info.switch_name === switchNum);
+            if (switchInfo) {
+                const color = feederColors.get(switchInfo.closest_section_1);
+                if (color) {
+                    const closestSection2 = switchInfo.closest_section_2;
+                    const newFeederColor = recentSwitchColors[switchInfo.closest_section_1] || color;
+                    recentSwitchColors[closestSection2] = newFeederColor;
+                }
+            }
+        });
+    }
+});
 
     // Event listener for changing the state of a switch
     document.getElementById('switchStateButton').addEventListener('click', function () {
