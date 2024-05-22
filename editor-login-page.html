@@ -1714,6 +1714,46 @@ Switches_source.on('change', function(event) {
     // Handle visibility for greylayer
     handleLayerVisibility(greyMapLayer, 'visibleGrey');
 
+    map.on('click', function(evt) {
+        // Get the feature that was clicked
+        const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+            return feature;
+        });
+
+        // Check if the clicked feature is a switch
+        if (feature && feature.get('NUMMERSCHA')) {
+            // Toggle the switch state
+            toggleSwitchState(feature.get('NUMMERSCHA'));
+        }
+    });
+
+    function toggleSwitchState(switchNum) {
+        // Find the switch by its unique identifier (NUMMERSCHA)
+        const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+        const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+
+        if (switchFeature) {
+            // Get the current state of the switch
+            const currentState = switchFeature.get('State');
+
+            // Toggle the state
+            let newState;
+            if (currentState === 'open') {
+                newState = 'closed';
+            } else {
+                newState = 'open';
+            }
+
+            // Update the switch state
+            updateSwitchState(switchNum, newState);
+        } else {
+            // Display error message
+            displayMessage('Switch not found.', false);
+            console.error('Switch not found.');
+        }
+    }
+
+
 </script>
 </body>
 </html>
