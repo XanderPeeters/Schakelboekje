@@ -642,11 +642,11 @@
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const detail = feature.get('DETAIL1');
         const state = feature.get('State');
-        let color = 'red'; // Set color to red by default
+        let color = 'green'; // Set color to red by default
 
         // Check if the state is "closed", then change the color to green
         if (state === 'open') {
-            color = 'green';
+            color = 'red';
         }
 
         // Calculate label visibility based on zoom level

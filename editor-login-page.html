@@ -890,9 +890,9 @@
         const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
         const detail = feature.get('DETAIL1');
         const state = feature.get('State');
-        let color = 'green'; // Set color to red by default
+        let color = 'green'; // Set color to green by default
 
-        // Check if the state is "closed", then change the color to green
+        // Check if the state is "closed", then change the color to red
         if (state === 'open') {
             color = 'red';
         }
