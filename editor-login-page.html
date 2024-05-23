@@ -448,20 +448,23 @@
         <button id="draw_Button" onclick="toggleDrawing()">Teken</button>
     </div>
     <br>
-    <div class="control-box">
-        <label for="switchNumber">Verander status van schakelaar:</label>
-        <input type="text" id="switchNumber" name="switchNumber">
+    <div style="display: none;">
+        <div class="control-box">
+            <label for="switchNumber">Verander status van schakelaar:</label>
+            <input type="text" id="switchNumber" name="switchNumber">
+        </div>
+        <div class="control-box">
+            <label for="newState">Nieuwe status:</label>
+            <select id="newState" name="newState">
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+            </select>
+        </div>
+        <div class="control-box">
+            <button id="switchStateButton">Verander status</button>
+        </div>
     </div>
-    <div class="control-box">
-        <label for="newState">Nieuwe status:</label>
-        <select id="newState" name="newState">
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-        </select>
-    </div>
-    <div class="control-box">
-        <button id="switchStateButton">Verander status</button>
-    </div>
+    
 </div>
 <div id="map"></div>
 <div id="popup" class="popup" style="display: none;"></div>
