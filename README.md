@@ -6,14 +6,14 @@ Additionally, the application will assist users by providing functionality to ca
 ### The code
 This code repository consists of three html files:
 
-index.html: Contains the application interface for standard users (visual purposes only).
-editor-login-page.html: Provides functionality for superusers to change switch states.
-login.html: Implements a login page to transition from the standard application to the superuser interface (username and password: "delijn").
+index.html: Contains the application interface for standard users (visual purposes only).  
+editor-login-page.html: Provides functionality for superusers to change switch states.  
+login.html: Implements a login page to transition from the standard application to the superuser interface (username and password: "delijn").  
 To run the application:
 
-Clone the GitHub repository to your preferred code editor.
-Once cloned, open the index.html file and run the code.
-The application will launch in your default internet browser.
+Clone the GitHub repository to your preferred code editor.  
+Once cloned, open the index.html file and run the code.  
+The application will launch in your default internet browser.  
 
 ### Sample data
 Currently, the code makes use of files stored in this Github repository. These files are currently being accessed using an URL in the code.  
