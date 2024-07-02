@@ -17,8 +17,9 @@ Once cloned, open the index.html file and run the code.
 The application will launch in your default internet browser.  
 
 ### Sample data
-Currently, the code makes use of files stored in this Github repository. These files are currently being accessed using an URL in the code.  
-For example: https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson  
-We use these files to load in the geojson data about the switches or the feeders and to show them on the map.  
-All the data that is being accessed by the code can be found in the "Sample data.zip" folder.    
-It is not necessary to download this zip-folder. The github repository is public and the sample data is directly accesible by the code.  
+The code currently accesses files from this GitHub repository using URLs within the code. For instance:
+
+Example URL: https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson  
+These files, such as geojson data for switches or feeders, are utilized to display information on the map within the application.
+
+All the necessary data for the application is located in the "Sample data.zip" folder. It's important to note that downloading this zip folder is not required. The GitHub repository containing the sample data is publicly accessible, allowing the code to access this data directly.
