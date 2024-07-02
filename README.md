@@ -22,4 +22,4 @@ The code currently accesses files from this GitHub repository using URLs within 
 Example URL: https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson  
 These files, such as geojson data for switches or feeders, are utilized to display information on the map within the application.
 
-All the necessary data for the application is located in the "Sample data.zip" folder. It's important to note that downloading this zip folder is not required. The GitHub repository containing the sample data is publicly accessible, allowing the code to access this data directly.
+All the necessary data for the application is located in the [Sample data.zip](Sample%20data.zip) folder. It's important to note that downloading this zip folder is not required. The GitHub repository containing the sample data is publicly accessible, allowing the code to access this data directly.
