@@ -6,7 +6,7 @@ Additionally, the application will assist users by providing functionality to ca
 ### The code
 This code repository consists of three html files:
 
-- `index.html`: Contains the application interface for standard users (visual purposes only).  
+- `index.html`: Contains the application interface for standard users.  
 - `editor-login-page.html`: Provides functionality for superusers to change switch states.  
 - `login.html`: Implements a login page to transition from the standard application to the superuser interface (username and password: "delijn").    
   
